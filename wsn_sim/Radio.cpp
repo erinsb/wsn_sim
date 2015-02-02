@@ -1,5 +1,9 @@
 #include "Radio.h"
+#include "Logger.h"
 
+#include <ostream>
+
+#define LOG_RX Logger("[RX]: ", RADIO_LOG_ENABLED)
 
 Radio::Radio(Device* device, uint8_t sigStrength, uint32_t turnaroundTime_us, uint32_t tifs_us, uint32_t bitrate) : 
   mDevice(device), 
@@ -15,6 +19,13 @@ Radio::Radio(Device* device, uint8_t sigStrength, uint32_t turnaroundTime_us, ui
 
 Radio::~Radio()
 {
+}
+
+void Radio::receivePacket(RadioPacket* pPacket)
+{
+
+
+  LOG_RX << pPacket;
 }
 
 void Radio::step(uint32_t timestamp)

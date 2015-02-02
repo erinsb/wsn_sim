@@ -2,8 +2,12 @@
 #include <stdint.h>
 #include "Device.h"
 #include "Runnable.h"
+#include "RadioPacket.h"
+
+#define RADIO_LOG_ENABLED (true)
 
 class Device;
+class RadioPacket;
 
 class Radio : public Runnable
 {
@@ -28,6 +32,8 @@ public:
 
   double getX(void) { return mDevice->pos.x; }
   double getY(void) { return mDevice->pos.y; }
+
+  void receivePacket(RadioPacket* pPacket);
 
   Device* getDevice(void) const { return mDevice; }
 
