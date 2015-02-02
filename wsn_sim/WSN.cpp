@@ -1,6 +1,6 @@
 #include "WSN.h"
 #include "Logger.h"
-
+#include "Radio.h"
 
 WSN::WSN() : mPacketCount(0), mPacketsDeletedCount(0)
 {
@@ -12,6 +12,9 @@ WSN::~WSN()
 {
 }
 
+WSN::PacketReceiver::PacketReceiver(Radio* radio) : mRadio(radio), mStartTime(radio->getEnvironment()->getTimestamp()){}
+
+void WSN::PacketReceiver::putPacket(RadioPacket* pPacket) { mPackets.push_back(pPacket); }
 
 
 packetHandle_t WSN::startTransmit(RadioPacket& packet)
@@ -40,9 +43,9 @@ void WSN::endTransmit(packetHandle_t packetHandle)
     mReceiverListChanged = false;
     PacketReceiver& recv = mReceivers.at(i);
 
-    if (recv.hasPacket(pPacket) && !recv.packetWasCorrupted(pPacket))
+    if (recv.hasPacket(pPacket) && !recv.packetIsCorrupted(pPacket))
     {
-      //TODO
+      recv.mRadio->receivePacket(pPacket);
     }
   }
 }
@@ -50,6 +53,13 @@ void WSN::endTransmit(packetHandle_t packetHandle)
 void WSN::abortTransmit(packetHandle_t packetHandle)
 {
 
+}
+
+void WSN::addDevice(Device& device)
+{
+  mDevices.push_back(&device);
+  getEnvironment()->attachRunnable(&device);
+  getEnvironment()->attachRunnable(device.mRadio);
 }
 
 RadioPacket* WSN::getRadioPacket(packetHandle_t handle) const 

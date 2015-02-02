@@ -1,9 +1,11 @@
 #pragma once
-#include "Device.h"
-#include "RadioPacket.h"
+#include "Runnable.h"
+#include <stdint.h>
 #include <vector>
 
+class Device;
 class RadioPacket;
+class Radio;
 typedef uint32_t packetHandle_t;
 
 class WSN : public Runnable
@@ -14,7 +16,6 @@ public:
 
   void addDevice(Device* device) { mDevices.push_back(device); }
 
-
   packetHandle_t startTransmit(RadioPacket& packet);
   void endTransmit(packetHandle_t packetHandle);
   void abortTransmit(packetHandle_t packetHandle);
@@ -22,6 +23,8 @@ public:
   void addReceiver(Radio* radio);
   bool removeReceiver(Radio* radio);
   bool hasReceiver(Radio* radio);
+
+  void addDevice(Device& device);
 
   std::vector<Radio*> getReceivingRadios(RadioPacket* packet);
 
@@ -33,8 +36,8 @@ private:
   class PacketReceiver
   {
   public:
-    PacketReceiver(Radio* radio) : mRadio(radio), mStartTime(radio->getEnvironment()->getTimestamp()){}
-    void putPacket(RadioPacket* pPacket) { mPackets.push_back(pPacket); }
+    PacketReceiver(Radio* radio);
+    void putPacket(RadioPacket* pPacket);
     bool hasPacket(RadioPacket* pPacket);
 
     bool packetIsCorrupted(RadioPacket* pPacket);
