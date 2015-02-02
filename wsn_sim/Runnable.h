@@ -10,9 +10,9 @@ class Runnable
 public:
   Runnable();
   ~Runnable();
-  void assignEnvironment(SimEnv& simEnv) { this->p_mSimEnv = &simEnv; }
+  void assignEnvironment(SimEnv* simEnv) { this->p_mSimEnv = simEnv; }
 
-  SimEnv* getEnvironment(void) { return p_mSimEnv; }
+  SimEnv* getEnvironment(void) const { return p_mSimEnv; }
 
   virtual void step(uint32_t time) = 0;
 
