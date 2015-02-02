@@ -1,6 +1,6 @@
 #pragma once
 #include <string>
-#include <ostream>
+#include <iostream>
 
 #define LOG_ENABLE        (true)
 
@@ -17,7 +17,7 @@ public:
   Logger& operator<<(const T &data)
   {
     if (mEnabled && LOG_ENABLE)
-      cout << mPrefix << ": " << data << endl;
+      std::cout << mPrefix << ": " << data << std::endl;
     std::string(__FUNCTION__);
     return *this;
   }
