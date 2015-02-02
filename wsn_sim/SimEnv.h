@@ -12,7 +12,7 @@ public:
   ~SimEnv();
 
   uint32_t getTimestamp(void){ return mTime; }
-  void attachRunnable(Runnable& runnable);
+  void attachRunnable(Runnable* runnable);
 
   void step(uint32_t deltaTime = 1);
 

@@ -11,10 +11,10 @@ SimEnv::~SimEnv()
 {
 }
 
-void SimEnv::attachRunnable(Runnable& runnable)
+void SimEnv::attachRunnable(Runnable* runnable)
 {
-  runnable.assignEnvironment(*this);
-  mRunnables.push_back(&runnable);
+  runnable->assignEnvironment(this);
+  mRunnables.push_back(runnable);
 }
 
 void SimEnv::step(uint32_t deltaTime)
