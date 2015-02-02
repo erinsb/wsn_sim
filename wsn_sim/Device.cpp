@@ -1,14 +1,16 @@
 #include "Device.h"
+#include "Radio.h"
 #include <math.h>
 
-Device::Device() : mRadio(*this, RADIO_DEFAULT_SIGSTRENGTH, RADIO_DEFAULT_TURNAROUND, RADIO_DEFAULT_TIFS, RADIO_DEFAULT_BITRATE)
+Device::Device()
 {
-
+  mRadio = new Radio(this, RADIO_DEFAULT_SIGSTRENGTH, RADIO_DEFAULT_TURNAROUND, RADIO_DEFAULT_TIFS, RADIO_DEFAULT_BITRATE);
 }
 
 
 Device::~Device()
 {
+  delete mRadio;
 }
 
 double Device::getDistanceTo(Device& device) const
