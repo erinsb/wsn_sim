@@ -29,8 +29,8 @@ namespace wsn_sim_tests
       Timer correct_timer(1.0, client);
       Timer fast_timer(2.0, client);
 
-      env.attachRunnable(correct_timer);
-      env.attachRunnable(fast_timer);
+      env.attachRunnable(&correct_timer);
+      env.attachRunnable(&fast_timer);
       env.step(timestamp);
       
       Assert::AreEqual(correct_timer.getTimestamp(), timestamp);
