@@ -2,9 +2,19 @@
 #include "Radio.h"
 #include <math.h>
 
-Device::Device()
+Device::Device(double x, double y)
 {
-  mRadio = new Radio(this, RADIO_DEFAULT_SIGSTRENGTH, RADIO_DEFAULT_TURNAROUND, RADIO_DEFAULT_TIFS, RADIO_DEFAULT_BITRATE);
+  pos.x = x;
+  pos.y = y;
+  mRadio = new Radio(this, 
+    RADIO_DEFAULT_SIGSTRENGTH, 
+    RADIO_DEFAULT_TURNAROUND, 
+    RADIO_DEFAULT_TIFS, 
+    RADIO_DEFAULT_BITRATE);
+}
+
+Device::Device() : Device(0.0, 0.0)
+{
 }
 
 

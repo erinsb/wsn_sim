@@ -9,6 +9,7 @@ class Device : public Runnable
   friend WSN;
   friend Radio;
 public:
+  Device(double x, double y);
   Device();
   ~Device();
 
