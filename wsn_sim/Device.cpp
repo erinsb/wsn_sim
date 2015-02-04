@@ -11,6 +11,7 @@ Device::Device(double x, double y)
     RADIO_DEFAULT_TURNAROUND, 
     RADIO_DEFAULT_TIFS, 
     RADIO_DEFAULT_BITRATE);
+  mTimer = new Timer(1.0, *this);
 }
 
 Device::Device() : Device(0.0, 0.0)
@@ -42,6 +43,10 @@ void Device::radioCallbackTx(RadioPacket* packet)
 }
 
 void Device::radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool corrupted)
+{
+
+}
+void Device::timerEnded(Timeout* timeout)
 {
 
 }

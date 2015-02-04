@@ -1,13 +1,15 @@
 #pragma once
 #include "WSN.h"
 #include "Runnable.h"
+#include "Timer.h"
 
 
 
-class Device : public Runnable
+class Device : public Runnable, public TimerClient
 {
   friend WSN;
   friend Radio;
+  friend Timer;
 public:
   Device(double x, double y);
   Device();
@@ -26,10 +28,13 @@ public:
 
   pos_t pos;
 
+
 protected:
   Radio* mRadio;
+  Timer* mTimer;
   virtual void radioCallbackTx(RadioPacket* packet);
   virtual void radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool corrupted);
+  virtual void timerEnded(Timeout* timeout);
 private:
 };
 
