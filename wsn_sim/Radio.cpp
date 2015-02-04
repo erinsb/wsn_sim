@@ -18,11 +18,9 @@ Radio::Radio(Device* device, uint8_t sigStrength, uint32_t turnaroundTime_us, ui
   mTifs_us = (tifs_us > turnaroundTime_us) ? tifs_us : turnaroundTime_us;
 }
 
-
 Radio::~Radio()
 {
 }
-
 
 void Radio::transmit(void)
 {
@@ -132,7 +130,6 @@ void Radio::step(uint32_t timestamp)
       LOG_ERROR << "Radio: illegal state";
     }
   }
-
 }
 
 void Radio::shortToNextState(void)
