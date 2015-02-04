@@ -55,7 +55,7 @@ void WSN::endTransmit(packetHandle_t packetHandle)
     }
     else
     {
-      sigStrength = (pPacket->getSender()->getSignalStrength() *
+      sigStrength = uint8_t(pPacket->getSender()->getSignalStrength() *
         (1 -
         pRecv->mRadio->getDevice()->getDistanceTo(*pPacket->getSender()->getDevice()) /
         pPacket->getMaxDistance()));
@@ -83,8 +83,10 @@ void WSN::addDevice(Device& device)
 {
   mDevices.push_back(&device);
   device.getRadio()->setWSN(this);
+  
   getEnvironment()->attachRunnable(&device);
   getEnvironment()->attachRunnable(device.mRadio);
+  getEnvironment()->attachRunnable(device.mTimer);
 }
 
 RadioPacket* WSN::getRadioPacket(packetHandle_t handle) const 
