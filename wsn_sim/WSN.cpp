@@ -48,9 +48,18 @@ void WSN::endTransmit(packetHandle_t packetHandle)
 
   for (PacketReceiver* pRecv : receivers)
   {
-    uint8_t sigStrength = (pPacket->getSender()->getSignalStrength() * 
-      pRecv->mRadio->getDevice()->getDistanceTo(*pPacket->getSender()->getDevice()) / 
-      pPacket->getMaxDistance());
+    uint8_t sigStrength;
+    if (pPacket->getMaxDistance() == 0.0)
+    {
+      sigStrength = 0;
+    }
+    else
+    {
+      sigStrength = (pPacket->getSender()->getSignalStrength() *
+        (1 -
+        pRecv->mRadio->getDevice()->getDistanceTo(*pPacket->getSender()->getDevice()) /
+        pPacket->getMaxDistance()));
+    }
 
     pRecv->mRadio->receivePacket(pPacket, sigStrength, pRecv->packetIsCorrupted(pPacket)); // will cause radio to stop RX
   }
