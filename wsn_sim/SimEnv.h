@@ -12,6 +12,7 @@ public:
   ~SimEnv();
 
   uint32_t getTimestamp(void){ return mTime; }
+  uint32_t numberOfRunnables(void) const { return mRunnables.size(); }
   void attachRunnable(Runnable* runnable);
 
   void step(uint32_t deltaTime = 1);
