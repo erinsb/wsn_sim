@@ -22,9 +22,11 @@ packetHandle_t WSN::startTransmit(RadioPacket& packet)
   RadioPacket* pPacket = new RadioPacket(packet);
   mPackets.push_back(pPacket);
 
-  for (PacketReceiver& receiver : mReceivers)
+  auto receivers = getPacketReceiversInRange(pPacket);
+
+  for (PacketReceiver* receiver : receivers)
   {
-    receiver.putPacket(pPacket);
+    receiver->putPacket(pPacket);
   }
 
   return mPacketCount++;
@@ -38,26 +40,40 @@ void WSN::endTransmit(packetHandle_t packetHandle)
     LOG_ERROR << "Someone ended an unregistered packet transmit.";
     return;
   }
-  for (uint32_t i = 0; i < mReceivers.size(); ++i)
-  {
-    mReceiverListChanged = false;
-    PacketReceiver& recv = mReceivers.at(i);
 
-    if (recv.hasPacket(pPacket) && !recv.packetIsCorrupted(pPacket))
-    {
-      recv.mRadio->receivePacket(pPacket);
-    }
+  pPacket->mEndTime = getEnvironment()->getTimestamp();
+
+  // make copy of receivers, as mReceives may change during iteration
+  auto receivers = getReceiversListening(pPacket);
+
+  for (PacketReceiver* pRecv : receivers)
+  {
+    uint8_t sigStrength = (pPacket->getSender()->getSignalStrength() * 
+      pRecv->mRadio->getDevice()->getDistanceTo(*pPacket->getSender()->getDevice()) / 
+      pPacket->getMaxDistance());
+
+    pRecv->mRadio->receivePacket(pPacket, sigStrength, pRecv->packetIsCorrupted(pPacket)); // will cause radio to stop RX
   }
 }
 
 void WSN::abortTransmit(packetHandle_t packetHandle)
 {
+  RadioPacket* pPacket = getRadioPacket(packetHandle);
+  if (pPacket == NULL)
+  {
+    LOG_ERROR << "Someone aborted an unregistered packet transmit.";
+    return;
+  }
 
+  pPacket->mEndTime = getEnvironment()->getTimestamp();
+
+  // Packet should not be cleared from receiver lists, as it may have caused collisions that are yet to be calculated
 }
 
 void WSN::addDevice(Device& device)
 {
   mDevices.push_back(&device);
+  device.getRadio()->setWSN(this);
   getEnvironment()->attachRunnable(&device);
   getEnvironment()->attachRunnable(device.mRadio);
 }
@@ -65,20 +81,6 @@ void WSN::addDevice(Device& device)
 RadioPacket* WSN::getRadioPacket(packetHandle_t handle) const 
 {
   return mPackets.at(handle - mPacketsDeletedCount);
-}
-
-std::vector<Radio*> WSN::getReceivingRadios(RadioPacket* packet)
-{
-  std::vector<Radio*> resultVector;
-  for (PacketReceiver& receiver : mReceivers)
-  {
-    if (packet->getSender() != receiver.mRadio && 
-       packet->getSender()->getDevice()->getDistanceTo(*receiver.mRadio->getDevice()) < packet->getMaxDistance())
-    {
-      resultVector.push_back(receiver.mRadio);  
-    }
-  }
-  return resultVector;
 }
 
 void WSN::addReceiver(Radio* radio)
@@ -143,4 +145,29 @@ bool WSN::PacketReceiver::packetIsCorrupted(RadioPacket* pPacket)
     }
   }
   return false;
+}
+
+std::vector<WSN::PacketReceiver*> WSN::getReceiversListening(RadioPacket* pPacket)
+{
+  std::vector<PacketReceiver*> resultVector;
+  for (PacketReceiver& receiver : mReceivers)
+  {
+    if (receiver.hasPacket(pPacket))
+      resultVector.push_back(&receiver);
+  }
+  return resultVector;
+}
+
+std::vector<WSN::PacketReceiver*> WSN::getPacketReceiversInRange(RadioPacket* pPacket)
+{
+  std::vector<PacketReceiver*> resultVector;
+  for (PacketReceiver& receiver : mReceivers)
+  {
+    if (pPacket->getSender() != receiver.mRadio &&
+      pPacket->getSender()->getDevice()->getDistanceTo(*receiver.mRadio->getDevice()) < pPacket->getMaxDistance())
+    {
+      resultVector.push_back(&receiver);
+    }
+  }
+  return resultVector;
 }

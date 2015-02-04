@@ -26,8 +26,7 @@ public:
 
   void addDevice(Device& device);
 
-  std::vector<Radio*> getReceivingRadios(RadioPacket* packet);
-
+  
   RadioPacket* getRadioPacket(packetHandle_t handle) const;
 
   virtual void step(uint32_t timestamp);
@@ -53,5 +52,8 @@ private:
   std::vector<PacketReceiver> mReceivers;
   bool mReceiverListChanged;
   
+
+  std::vector<PacketReceiver*> getReceiversListening(RadioPacket* pPacket);
+  std::vector<PacketReceiver*> getPacketReceiversInRange(RadioPacket* pPacket);
 };
 
