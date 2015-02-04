@@ -24,3 +24,14 @@ void Device::step(uint32_t timestamp)
 {
 
 }
+
+
+void Device::radioCallbackTx(RadioPacket* packet)
+{
+
+}
+
+void Device::radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool corrupted)
+{
+
+}

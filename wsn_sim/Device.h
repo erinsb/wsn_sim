@@ -2,20 +2,17 @@
 #include "WSN.h"
 #include "Runnable.h"
 
-#define RADIO_DEFAULT_SIGSTRENGTH (100)
-#define RADIO_DEFAULT_TURNAROUND  (138)
-#define RADIO_DEFAULT_TIFS        (150)
-#define RADIO_DEFAULT_BITRATE     (1000)
 
 
 class Device : public Runnable
 {
   friend WSN;
+  friend Radio;
 public:
   Device();
   ~Device();
 
-  const Radio* getRadio(void) const { return mRadio; }
+  Radio* getRadio(void) const { return mRadio; }
 
   double getDistanceTo(Device& device) const;
 
@@ -28,7 +25,10 @@ public:
 
   pos_t pos;
 
-private:
+protected:
   Radio* mRadio;
+  virtual void radioCallbackTx(RadioPacket* packet);
+  virtual void radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool corrupted);
+private:
 };
 
