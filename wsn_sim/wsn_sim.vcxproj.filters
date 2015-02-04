@@ -18,25 +18,25 @@
     <ClInclude Include="Device.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Logger.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="Radio.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Runnable.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="WSN.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SimEnv.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="RadioPacket.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Logger.h">
+    <ClInclude Include="Runnable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SimEnv.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Timer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="WSN.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
