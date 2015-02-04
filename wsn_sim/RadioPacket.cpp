@@ -2,7 +2,10 @@
 #include "Radio.h"
 
 
-RadioPacket::RadioPacket(const Radio* sender, uint8_t* data, uint32_t length) : mSender(sender), mLength(length), p_mEnvironment(sender->getEnvironment())
+RadioPacket::RadioPacket(Radio* const sender, uint8_t* data, uint32_t length) :
+  mSender(sender), 
+  mLength(length), 
+  p_mEnvironment(sender->getEnvironment())
 {
   mData = new uint8_t[length];
   memcpy_s(mData, length, data, length);
@@ -12,6 +15,12 @@ RadioPacket::RadioPacket(const Radio* sender, uint8_t* data, uint32_t length) : 
 
 RadioPacket::RadioPacket(const RadioPacket& packet) : RadioPacket(packet.mSender, packet.mData, packet.mLength){}
 
+RadioPacket::RadioPacket(void) : 
+  mSender(NULL), 
+  mLength(0), 
+  p_mEnvironment(NULL), 
+  mData(NULL), mStartTime(NULL), 
+  mSignalStrength(0){}
 
 RadioPacket::~RadioPacket()
 {
@@ -22,13 +31,7 @@ RadioPacket::~RadioPacket()
 bool RadioPacket::collidesWith(RadioPacket* pOther)
 {
   return (
-      (this != pOther) && 
-    (
-      (this->mStartTime >= pOther->mStartTime && this->mStartTime >= pOther->mEndTime) ||
-      (this->mStartTime >= pOther->mStartTime && this->mStartTime <= pOther->mEndTime) ||
-      (this->mStartTime <= pOther->mStartTime && this->mStartTime >= pOther->mEndTime) ||
-      (this->mStartTime <= pOther->mStartTime && this->mStartTime <= pOther->mEndTime) 
-    ) &&
+      (this != pOther) &&
     !(
       (this->mStartTime > pOther->mEndTime) ||
       (pOther->mStartTime > this->mEndTime)
@@ -50,4 +53,21 @@ std::ostream& operator<<(std::ostream& ostr, RadioPacket& packet)
   ostr << std::resetiosflags(std::ios::basefield) << std::resetiosflags(std::ios::showbase);
 
   return ostr;
+}
+
+RadioPacket& RadioPacket::operator=(RadioPacket& rhs)
+{
+  delete this->mData;
+  
+  this->mLength = rhs.mLength;
+  this->mStartTime = rhs.mStartTime;
+  this->mEndTime = rhs.mEndTime;
+  this->mSender = rhs.mSender;
+  this->mSignalStrength = rhs.mSignalStrength;
+  this->p_mEnvironment = rhs.p_mEnvironment;
+  
+  this->mData = new uint8_t[rhs.mLength];
+  memcpy_s(this->mData, rhs.mLength, rhs.mData, rhs.mLength);
+
+  return (*this);
 }
