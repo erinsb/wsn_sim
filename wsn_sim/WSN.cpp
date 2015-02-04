@@ -92,6 +92,20 @@ RadioPacket* WSN::getRadioPacket(packetHandle_t handle) const
   return mPackets.at(handle - mPacketsDeletedCount);
 }
 
+std::vector<RadioPacket*> WSN::getPacketsInFlight(void) const
+{
+  std::vector<RadioPacket*> resultVector;
+  uint32_t now = getEnvironment()->getTimestamp();
+
+  for (RadioPacket* p : mPackets)
+  { 
+    if (p->mEndTime > now)
+      resultVector.push_back(p);
+  }
+
+  return resultVector;
+}
+
 void WSN::addReceiver(Radio* radio)
 {
   if (!hasReceiver(radio))

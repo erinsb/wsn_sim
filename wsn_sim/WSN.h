@@ -26,8 +26,8 @@ public:
 
   void addDevice(Device& device);
 
-  
   RadioPacket* getRadioPacket(packetHandle_t handle) const;
+  std::vector<RadioPacket*> getPacketsInFlight(void) const;
 
   virtual void step(uint32_t timestamp);
 
