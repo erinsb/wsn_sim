@@ -1,6 +1,9 @@
 #include "RadioPacket.h"
 #include "Radio.h"
 
+#include <iostream>
+#include <sstream>
+
 
 RadioPacket::RadioPacket(Radio* const sender, uint8_t* data, uint32_t length) :
   mSender(sender), 
@@ -10,6 +13,7 @@ RadioPacket::RadioPacket(Radio* const sender, uint8_t* data, uint32_t length) :
   mData = new uint8_t[length];
   memcpy_s(mData, length, data, length);
   mStartTime = p_mEnvironment->getTimestamp();  
+  mEndTime = UINT32_MAX; //yet to be determined
   mSignalStrength = sender->getSignalStrength();
 }
 
@@ -19,8 +23,11 @@ RadioPacket::RadioPacket(void) :
   mSender(NULL), 
   mLength(0), 
   p_mEnvironment(NULL), 
-  mData(NULL), mStartTime(NULL), 
-  mSignalStrength(0){}
+  mData(NULL), 
+  mStartTime(0), 
+  mEndTime(UINT32_MAX),
+  mSignalStrength(0)
+{}
 
 RadioPacket::~RadioPacket()
 {
@@ -31,6 +38,7 @@ RadioPacket::~RadioPacket()
 bool RadioPacket::collidesWith(RadioPacket* pOther)
 {
   return (
+      (pOther != NULL) &&
       (this != pOther) &&
     !(
       (this->mStartTime > pOther->mEndTime) ||
@@ -70,4 +78,11 @@ RadioPacket& RadioPacket::operator=(RadioPacket& rhs)
   memcpy_s(this->mData, rhs.mLength, rhs.mData, rhs.mLength);
 
   return (*this);
+}
+
+std::string RadioPacket::ToString(void)
+{
+  std::stringstream os;
+  os << (*this);
+  return os.str();
 }

@@ -28,6 +28,7 @@ public:
 
   friend std::ostream& operator<<(std::ostream& ostream, RadioPacket& packet);
   RadioPacket& operator=(RadioPacket& rhs);
+  std::string ToString(void);
 
   uint32_t mStartTime;
   uint32_t mEndTime;
