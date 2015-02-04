@@ -9,7 +9,7 @@
 #define RADIO_DEFAULT_SIGSTRENGTH (100)
 #define RADIO_DEFAULT_TURNAROUND  (138)
 #define RADIO_DEFAULT_TIFS        (150)
-#define RADIO_DEFAULT_BITRATE     (1000)
+#define RADIO_DEFAULT_BITRATE     (1) /* bit per us */
 
 class Device;
 class RadioPacket;
@@ -18,6 +18,7 @@ class RadioPacket;
 class Radio : public Runnable
 {
   friend WSN;
+
 public:
   typedef enum
   {
@@ -28,7 +29,13 @@ public:
     RADIO_STATE_IDLE
   } state_t;
 
-  Radio(Device* device, uint8_t sigStrength, uint32_t turnaroundTime_us, uint32_t tifs_us, uint32_t bitrate);
+  Radio(
+    Device* device, 
+    uint8_t sigStrength, 
+    uint32_t turnaroundTime_us, 
+    uint32_t tifs_us, 
+    uint32_t bitrate);
+
   ~Radio();
 
   void transmit(void);
@@ -36,15 +43,18 @@ public:
   void disable(void);
   void setPacket(uint8_t* packet, uint8_t length);
 
-
   void shortToRx(void);
   void shortToTx(void);
   void shortDisable(void);
 
   void setWSN(WSN* wsn) { this->mWSN = wsn; }
 
+  state_t getState(void) const { return mState; }
   uint8_t getSignalStrength(void) const { return mSigStrength; }
-  uint32_t getTxTime(RadioPacket& packetToTx) { return mBitrate * packetToTx.getLength() * 8; }
+  uint32_t getTxTime(uint32_t packet_length) 
+  { 
+    return packet_length * 8 / mBitrate; 
+  }
 
   double getX(void) { return mDevice->pos.x; }
   double getY(void) { return mDevice->pos.y; }
@@ -52,7 +62,6 @@ public:
   Device* const getDevice(void) const { return mDevice; }
 
   virtual void step(uint32_t time);
-
 
 private:
   typedef enum
@@ -73,7 +82,10 @@ private:
   uint8_t mSigStrength;
   uint32_t mNextStateTime;
 
-  void receivePacket(RadioPacket* pPacket, uint8_t rx_strength, bool corrupted);
+  void receivePacket(
+    RadioPacket* pPacket, 
+    uint8_t rx_strength, 
+    bool corrupted);
   void shortToNextState(void);
 };
 
