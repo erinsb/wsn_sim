@@ -86,6 +86,8 @@ void Radio::shortDisable(void)
 void Radio::receivePacket(RadioPacket* pPacket, uint8_t rx_strength, bool corrupted)
 {
   mDevice->radioCallbackRx(pPacket, rx_strength, corrupted);
+  mWSN->removeReceiver(this);
+  shortToNextState();
 
   LOG_RX << pPacket;
 }
@@ -103,12 +105,13 @@ void Radio::step(uint32_t timestamp)
 
     case RADIO_STATE_RAMPUP_RX:
       mWSN->addReceiver(this);
+      mNextStateTime = UINT32_MAX;
       mState = RADIO_STATE_RX;
       break;
 
     case RADIO_STATE_RAMPUP_TX:
       mTxPacketHandle = mWSN->startTransmit(mCurrentPacket);
-      mNextStateTime = timestamp + getTxTime(mCurrentPacket);
+      mNextStateTime = timestamp + getTxTime(mCurrentPacket.getLength());
       mState = RADIO_STATE_TX;
       break;
 
