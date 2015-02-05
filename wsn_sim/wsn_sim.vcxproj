@@ -90,6 +90,7 @@
   <ItemGroup>
     <ClCompile Include="Device.cpp" />
     <ClCompile Include="Logger.cpp" />
+    <ClCompile Include="Mltithreading.cpp" />
     <ClCompile Include="Radio.cpp" />
     <ClCompile Include="RadioPacket.cpp" />
     <ClCompile Include="Runnable.cpp" />

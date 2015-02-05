@@ -2,6 +2,7 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <mutex>
 
 #define LOG_ENABLE        (true)
 
@@ -34,6 +35,7 @@ private:
   std::stringstream mStream;
   std::string mPrefix;
   bool mEnabled;
+  static std::mutex mCoutMutex;
 };
 
 #define LOG_ERROR   std::cout << Logger("[ERROR][" + std::string(__FILE__) + ":L" + std::to_string(__LINE__) + "]", true)
