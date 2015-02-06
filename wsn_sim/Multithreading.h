@@ -24,7 +24,7 @@ public:
 	{
 		std::unique_lock<std::mutex> lock{ _mutex };
     _writeMutex.lock();
-		if (--_count == 0) {
+		if (_count == 0 || --_count == 0) {
       _writeMutex.unlock();
 			_cv.notify_all();
 		}
@@ -42,6 +42,14 @@ public:
       _cv.notify_all();
     }
     _writeMutex.unlock();
+  }
+
+  void free()
+  {
+    _writeMutex.lock();
+    _count = 0;
+    _writeMutex.unlock();
+    _cv.notify_all();
   }
 
   std::string ToString(void) { return "Count = " + std::to_string(_count); }

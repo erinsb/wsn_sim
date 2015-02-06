@@ -18,10 +18,21 @@ SimEnv::SimEnv(void)
 
 SimEnv::~SimEnv()
 {
+#if 1
   for (uint8_t i = 0; i < THREAD_COUNT; ++i)
   {
-    delete mThreads[i];
+    mThreads[i]->mRunning = false;
   }
+  mStartBarrier.free();
+  mEndBarrier.wait();
+  mEndBarrier.free();
+  for (uint8_t i = 0; i < THREAD_COUNT; ++i)
+  {
+    mThreads[i]->mThread->join();
+  }
+  for (uint8_t i = 0; i < THREAD_COUNT; ++i)
+    delete mThreads[i];
+#endif
 }
 
 void SimEnv::attachRunnable(Runnable* runnable)
@@ -60,24 +71,30 @@ void SimEnv::run(uint32_t stopTime, uint32_t deltaTime)
     mStartBarrier.reset(THREAD_COUNT + 1);
     mEndBarrier.wait();
   }
+  mEndBarrier.reset(THREAD_COUNT + 1);
 }
 
-SimThread::SimThread(SimEnv* myEnv, uint8_t index) : mIndex(index), mEnv(myEnv), mThread(&SimThread::run, this)
+SimThread::SimThread(SimEnv* myEnv, uint8_t index) : mIndex(index), mEnv(myEnv), mRunning(true)
 {
-  
+  mThread = new std::thread(&SimThread::run, this);
 }
 
 SimThread::~SimThread()
 {
-  delete &mThread;
+  mEnv->mStartBarrier.free();
+  mEnv->mEndBarrier.free();
+  mRunning = false;
+  delete mThread;
 }
 
 void SimThread::run(void)
 {
-  while (true)
+  while (mRunning)
   {
     //wait for start
     mEnv->mStartBarrier.wait();
+    if (!mRunning)
+      break;
 
     for (uint32_t i = 0; i < mRunnables.size(); ++i)
     {
@@ -87,4 +104,6 @@ void SimThread::run(void)
     mEnv->mEndBarrier.wait();
 
   }
+  mEnv->mEndBarrier.wait();
+  LOG_DEBUG << mRunning << " " << (uint32_t) mIndex;
 }

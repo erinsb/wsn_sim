@@ -44,9 +44,10 @@ public:
   SimThread(SimEnv* myEnv, uint8_t index);
   ~SimThread();
 private:
+  bool mRunning;
   uint8_t mIndex;
   SimEnv* mEnv;
-  std::thread mThread;
+  std::thread* mThread;
   std::vector<Runnable*> mRunnables;
   void run(void);
 };
