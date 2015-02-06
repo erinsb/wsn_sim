@@ -4,15 +4,9 @@
 
 #include "Logger.h"
 
+#include <functional>
+
 #define ADV_INT (100000)
-
-typedef void(*timer_action)(AdvDevice*);
-
-static void stop_radio(AdvDevice* dev)
-{
-  dev->getRadio()->disable();
-  dev->getRadio()->shortDisable();
-}
 
 
 AdvDevice::AdvDevice(uint8_t* advPacket, uint32_t advPacketLength, uint8_t* scanPacket, uint32_t scanPacketLength):
@@ -30,7 +24,13 @@ AdvDevice::~AdvDevice()
 
 void AdvDevice::start(void)
 {
-  mTimer->orderRelative(10);
+  startAdv(getEnvironment()->getTimestamp(), NULL);
+}
+
+void AdvDevice::stopRadio(uint32_t timestamp, void* context)
+{
+  mRadio->disable();
+  mRadio->shortDisable();
 }
 
 
@@ -42,7 +42,7 @@ void AdvDevice::step(uint32_t timestamp)
 
 void AdvDevice::radioCallbackTx(RadioPacket* packet)
 {
-  mTimer->orderRelative(60, (void*) &stop_radio);
+  mTimer->orderRelative(400, std::bind(&AdvDevice::stopRadio, this, std::placeholders::_1, std::placeholders::_2));
   mRadio->shortToTx();
 
 }
@@ -56,19 +56,12 @@ void AdvDevice::radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool c
   }
 }
 
-void AdvDevice::timerEnded(Timeout* timeout)
+void AdvDevice::startAdv(uint32_t timestamp, void* context)
 {
-  if (timeout->mContext == NULL)
-  {
-    LOG_DEBUG << "ADV";
-    mTimer->orderRelative(100000);
+  LOG_DEBUG << "ADV " << timestamp;
+  mTimer->orderRelative(ADV_INT, std::bind(&AdvDevice::startAdv, this, std::placeholders::_1, std::placeholders::_2));
 
-    mRadio->setPacket(mAdvPacket, mAdvPacketLength);
-    mRadio->shortToRx();
-    mRadio->transmit();
-  }
-  else
-  {
-    ((timer_action)timeout->mContext)(this); // fuck, this is ugly
-  }
+  mRadio->setPacket(mAdvPacket, mAdvPacketLength);
+  mRadio->shortToRx();
+  mRadio->transmit();
 }

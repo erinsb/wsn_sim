@@ -20,6 +20,8 @@ private:
 
   virtual void radioCallbackTx(RadioPacket* packet);
   virtual void radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool corrupted);
-  virtual void timerEnded(Timeout* timeout);
+
+  void startAdv(uint32_t timestamp, void* context);
+  void stopRadio(uint32_t timestamp, void* context);
 };
 
