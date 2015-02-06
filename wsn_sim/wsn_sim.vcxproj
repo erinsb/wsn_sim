@@ -80,6 +80,7 @@
   <ItemGroup>
     <ClInclude Include="Device.h" />
     <ClInclude Include="Logger.h" />
+    <ClInclude Include="Multithreading.h" />
     <ClInclude Include="Radio.h" />
     <ClInclude Include="RadioPacket.h" />
     <ClInclude Include="Runnable.h" />
@@ -90,7 +91,6 @@
   <ItemGroup>
     <ClCompile Include="Device.cpp" />
     <ClCompile Include="Logger.cpp" />
-    <ClCompile Include="Mltithreading.cpp" />
     <ClCompile Include="Radio.cpp" />
     <ClCompile Include="RadioPacket.cpp" />
     <ClCompile Include="Runnable.cpp" />

@@ -39,6 +39,9 @@
     <ClInclude Include="WSN.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Multithreading.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Device.cpp">
@@ -63,9 +66,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Timer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Mltithreading.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
