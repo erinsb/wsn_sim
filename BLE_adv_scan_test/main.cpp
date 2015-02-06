@@ -1,6 +1,7 @@
 #include "AdvDevice.h"
 #include "WSN.h"
-
+#include <iostream>
+#include <fstream>
 
 int main(void)
 {
@@ -15,8 +16,18 @@ int main(void)
 
   advDev.start();
 
-  simEnv.run();
+  simEnv.run(200000);
   
+  auto usage = advDev.getPowerUsage();
 
+  std::cout << std::endl;
+  std::ofstream ofs;
+  ofs.open("log.txt");
+  for (double mA : usage)
+    ofs << mA << std::endl;
+
+  std::cout << advDev.getPowerUsageAvg() << "mA" << std::endl;
+
+  system("pause");
   return 0;
 }
