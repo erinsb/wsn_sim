@@ -16,7 +16,6 @@ namespace wsn_sim_tests
 		TEST_METHOD(TestDrift)
 		{
       SimEnv env;
-      DummyClient client;
       const uint32_t timestamp = 20;
 
       Timer correct_timer(1.0);
