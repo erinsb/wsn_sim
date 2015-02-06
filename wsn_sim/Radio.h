@@ -6,10 +6,17 @@
 
 #define RADIO_LOG_ENABLED (true)
 
+/* Nordic Semiconductor nRF51822 numbers */
 #define RADIO_DEFAULT_SIGSTRENGTH (100)
 #define RADIO_DEFAULT_TURNAROUND  (138)
 #define RADIO_DEFAULT_TIFS        (150)
 #define RADIO_DEFAULT_BITRATE     (1) /* bit per us */
+
+#define RADIO_POWER_RX            (13.0)
+#define RADIO_POWER_TX            (10.5)
+#define RADIO_POWER_RAMPUP_RX     (8.7)
+#define RADIO_POWER_RAMPUP_TX     (7.0)
+#define RADIO_POWER_IDLE          (0.0)
 
 class Device;
 class RadioPacket;
@@ -70,6 +77,7 @@ private:
     SHORT_TO_TX,
     SHORT_DISABLED
   }short_t;
+
   short_t mShort;
   state_t mState;
   Device* mDevice;
@@ -82,10 +90,14 @@ private:
   uint8_t mSigStrength;
   uint32_t mNextStateTime;
 
+  static const double powerProfile[7];
+  
   void receivePacket(
     RadioPacket* pPacket, 
     uint8_t rx_strength, 
     bool corrupted);
   void shortToNextState(void);
+
+  void setState(state_t newState);
 };
 

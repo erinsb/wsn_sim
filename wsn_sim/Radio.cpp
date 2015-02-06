@@ -5,6 +5,15 @@
 
 #define LOG_RX Logger("[RX]: ", RADIO_LOG_ENABLED)
 
+const double Radio::powerProfile[] =
+{
+  RADIO_POWER_RX,
+  RADIO_POWER_TX,
+  RADIO_POWER_RAMPUP_RX,
+  RADIO_POWER_RAMPUP_TX,
+  RADIO_POWER_IDLE
+};
+
 Radio::Radio(Device* device, uint8_t sigStrength, uint32_t turnaroundTime_us, uint32_t tifs_us, uint32_t bitrate) : 
   mDevice(device), 
   mSigStrength(sigStrength), 
@@ -26,7 +35,7 @@ void Radio::transmit(void)
 {
   if (mState == RADIO_STATE_IDLE)
   {
-    mState = RADIO_STATE_RAMPUP_TX;
+    setState(RADIO_STATE_RAMPUP_TX);
     mNextStateTime = getEnvironment()->getTimestamp() + mTurnaroundTime_us;
   }
   else
@@ -39,7 +48,7 @@ void Radio::receive(void)
 {
   if (mState == RADIO_STATE_IDLE)
   {
-    mState = RADIO_STATE_RAMPUP_RX;
+    setState(RADIO_STATE_RAMPUP_RX);
     mNextStateTime = getEnvironment()->getTimestamp() + mTurnaroundTime_us;
   }
   else
@@ -58,7 +67,7 @@ void Radio::disable(void)
   {
     mWSN->abortTransmit(mTxPacketHandle);
   }
-  mState = RADIO_STATE_IDLE;
+  setState(RADIO_STATE_IDLE);
 }
 
 void Radio::setPacket(uint8_t* packet, uint8_t length)
@@ -104,13 +113,13 @@ void Radio::step(uint32_t timestamp)
     case RADIO_STATE_RAMPUP_RX:
       mWSN->addReceiver(this);
       mNextStateTime = UINT32_MAX;
-      mState = RADIO_STATE_RX;
+      setState(RADIO_STATE_RX);
       break;
 
     case RADIO_STATE_RAMPUP_TX:
       mTxPacketHandle = mWSN->startTransmit(mCurrentPacket);
       mNextStateTime = timestamp + getTxTime(mCurrentPacket.getLength());
-      mState = RADIO_STATE_TX;
+      setState(RADIO_STATE_TX);
       break;
 
     case RADIO_STATE_RX:
@@ -136,7 +145,7 @@ void Radio::shortToNextState(void)
 {
   if (mShort == SHORT_DISABLED)
   {
-    mState = RADIO_STATE_IDLE;
+    setState(RADIO_STATE_IDLE);
     mNextStateTime = UINT32_MAX;
   }
   else
@@ -145,11 +154,19 @@ void Radio::shortToNextState(void)
 
     if (mShort == SHORT_TO_RX)
     {
-      mState = RADIO_STATE_RAMPUP_RX;
+      setState(RADIO_STATE_RAMPUP_RX);
     }
     else
     {
-      mState = RADIO_STATE_RAMPUP_TX;
+      setState(RADIO_STATE_RAMPUP_TX);
     }
   }
+}
+
+
+void Radio::setState(state_t newState)
+{
+  mDevice->removePowerDrain(powerProfile[mState]);  
+  mDevice->registerPowerDrain(powerProfile[newState]);
+  mState = newState;
 }
