@@ -1,33 +1,36 @@
 #pragma once
 #include "Runnable.h"
+#include <functional>
 
 
 class Timeout
 {
 public:
-  Timeout(uint32_t timestamp, void* context) : mTimestamp(timestamp), mContext(context){}
+  Timeout(uint32_t timestamp, const std::function<void(uint32_t, void*)> callback, void* context) : mTimestamp(timestamp), mCallback(callback), mContext(context){}
+
+  void fire(void) 
+  { 
+    invalid = true;
+    mCallback(mTimestamp, mContext); 
+  }
+  const std::function<void(uint32_t, void*)> mCallback;
   uint32_t mTimestamp;
+  bool invalid = false;
   void* mContext;
 };
-
-class TimerClient
-{
-public:
-  virtual void timerEnded(Timeout* timeout) = 0;
-};
-
 
 class Timer : public Runnable
 {
 public:
-  Timer(double drift, TimerClient& client);
+  Timer(double drift);
   ~Timer();
 
   void setDriftFactor(double driftFactor) { mDriftFactor = driftFactor; }
   void resetDrift(void);
 
-  void orderAt(uint32_t timestamp, void* context = NULL);
-  void orderRelative(uint32_t deltaTime, void* context = NULL);
+  void orderAt(uint32_t timestamp, const std::function<void(uint32_t, void*)> callback, void* context = NULL);
+  
+  void orderRelative(uint32_t deltaTime, const std::function<void(uint32_t, void*)> callback, void* context = NULL);
 
   uint32_t getTimestamp(void);
 
@@ -36,8 +39,7 @@ public:
 private:
   uint32_t mDriftAnchor;
   double mDriftFactor;
-  TimerClient& mClient;
-  std::vector<Timeout> mTimeouts;
+  std::vector<Timeout*> mTimeouts;
   bool mIteratorInvalidated = false;
 
   uint32_t getTimerTime(uint32_t globalTime);

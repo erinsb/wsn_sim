@@ -1,7 +1,6 @@
 #include "Timer.h"
 
-
-Timer::Timer(double drift, TimerClient& client) : mDriftFactor(drift), mClient(client), mDriftAnchor(0)
+Timer::Timer(double drift) : mDriftFactor(drift), mDriftAnchor(0)
 {
 }
 
@@ -17,15 +16,15 @@ void Timer::resetDrift(void)
   mDriftAnchor = getEnvironment()->getTimestamp();
 }
 
-void Timer::orderAt(uint32_t timestamp, void* context)
+void Timer::orderAt(uint32_t timestamp, const std::function<void(uint32_t, void*)> callback, void* context)
 {
-  mTimeouts.push_back(Timeout(timestamp, context));
+  mTimeouts.push_back(new Timeout(timestamp, callback, context));
   mIteratorInvalidated = true;
 }
 
-void Timer::orderRelative(uint32_t deltaTime, void* context)
+void Timer::orderRelative(uint32_t deltaTime, const std::function<void(uint32_t, void*)> callback, void* context)
 {
-  orderAt(getTimestamp() + deltaTime, context);
+  orderAt(getTimestamp() + deltaTime, callback, context);
 
 }
 
@@ -40,11 +39,18 @@ void Timer::step(uint32_t timestamp)
   auto it = mTimeouts.begin(); 
   while (it != mTimeouts.end())
   {
-    if (it->mTimestamp <= timestamp)
+    if ((*it)->mTimestamp <= timestamp)
     {
-      Timeout to(it->mTimestamp, it->mContext);
-      it = mTimeouts.erase(it);
-      mClient.timerEnded(&to);
+      Timeout* to = *it;
+      if (!to->invalid)
+      {
+        to->fire();
+      }
+      else
+      {
+        delete to;
+        it = mTimeouts.erase(it);
+      }
 
       if (mIteratorInvalidated)
       {

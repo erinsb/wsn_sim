@@ -5,7 +5,7 @@
 
 
 
-class Device : public Runnable, public TimerClient
+class Device : public Runnable
 {
   friend WSN;
   friend Radio;
@@ -34,7 +34,6 @@ protected:
   Timer* mTimer;
   virtual void radioCallbackTx(RadioPacket* packet);
   virtual void radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool corrupted);
-  virtual void timerEnded(Timeout* timeout);
 private:
 };
 
