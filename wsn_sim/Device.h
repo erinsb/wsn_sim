@@ -21,6 +21,12 @@ public:
 
   virtual void step(uint32_t timestamp);
 
+  //power
+  void registerPowerDrain(double power_mA);
+  void removePowerDrain(double power_mA);
+  std::vector<double> getPowerUsage(uint32_t firstSample = 0, uint32_t lastSample = UINT32_MAX) const;
+  double getPowerUsageAvg(uint32_t firstSample = 0, uint32_t lastSample = UINT32_MAX) const;
+
   typedef struct
   {
     double x, y;
@@ -35,5 +41,12 @@ protected:
   virtual void radioCallbackTx(RadioPacket* packet);
   virtual void radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool corrupted);
 private:
+  typedef struct 
+  {
+    double power_mA;
+    uint32_t timestamp;
+  }powerEvent_t;
+  std::mutex powerMut;
+  std::vector<powerEvent_t> powerUsage;
 };
 

@@ -32,6 +32,69 @@ double Device::getDistanceTo(Device& device) const
   return (sqrt(distX * distX + distY * distY));
 }
 
+
+void Device::registerPowerDrain(double power_mA)
+{
+  powerMut.lock();
+  if (powerUsage.size() == 0)
+  {
+    powerUsage.push_back(powerEvent_t{ power_mA, getEnvironment()->getTimestamp() });
+  }
+  else if (powerUsage.back().timestamp == getEnvironment()->getTimestamp())
+  {
+    powerUsage.back().power_mA += power_mA;
+  }
+  else
+  {
+    powerUsage.push_back(powerEvent_t{ powerUsage.back().power_mA + power_mA, getEnvironment()->getTimestamp() });
+  }
+  powerMut.unlock();
+}
+
+void Device::removePowerDrain(double power_mA)
+{
+  registerPowerDrain(-power_mA);
+}
+
+std::vector<double> Device::getPowerUsage(uint32_t firstSample, uint32_t lastSample) const 
+{
+  std::vector<double> resultVector;
+  uint32_t time = firstSample;
+  uint32_t now = getEnvironment()->getTimestamp();
+  
+  if (lastSample > now)
+    lastSample = now;
+
+  if (powerUsage.size() == 0)
+  {
+    for (; time <= lastSample; ++time)
+      resultVector.push_back(0.0);
+  }
+
+  double usageNow = 0.0;
+  
+  for (powerEvent_t evt : powerUsage)
+  {
+    for (; time < evt.timestamp && time <= lastSample; ++time)
+      resultVector.push_back(usageNow);
+    usageNow = evt.power_mA;
+  }
+  for (; time <= lastSample; ++time)
+    resultVector.push_back(usageNow);
+
+  return resultVector;
+}
+
+double Device::getPowerUsageAvg(uint32_t firstSample, uint32_t lastSample) const
+{
+  auto usage = getPowerUsage(firstSample, lastSample);
+  uint32_t size = usage.size();
+  double total = 0.0;
+  for (double mA : usage)
+    total += mA;
+  return total / size;
+}
+
 void Device::step(uint32_t timestamp)
 {
 
