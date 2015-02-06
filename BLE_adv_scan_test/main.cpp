@@ -15,10 +15,8 @@ int main(void)
 
   advDev.start();
 
-  while (true)
-  {
-    simEnv.step(1);
-  }
+  simEnv.run();
+  
 
   return 0;
 }
