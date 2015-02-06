@@ -19,6 +19,5 @@ public:
 
 private:
   SimEnv* p_mSimEnv = NULL;
-  void synchronizedStep(uint32_t time, Barrier& barrier);
 };
 

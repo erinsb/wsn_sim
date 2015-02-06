@@ -6,7 +6,7 @@
 #include <thread>
 #include <stdint.h>
 
-#define THREAD_COUNT  (8)
+#define THREAD_COUNT  (4)
 
 class Runnable;
 class SimThread;
@@ -21,28 +21,32 @@ public:
   ~SimEnv();
 
   uint32_t getTimestamp(void){ return mTime; }
-  uint32_t numberOfRunnables(void) const { return mRunnables.size(); }
+  uint32_t numberOfRunnables(void) const;
   void attachRunnable(Runnable* runnable);
+  void stop(void) { mRunning = false; }
 
-  void step(uint32_t deltaTime = 1);
+  void run(uint32_t stopTime = UINT32_MAX, uint32_t deltaTime = 1);
 
 private:
   uint32_t mTime;
-  std::vector<Runnable*> mRunnables;
   std::vector<Runnable*> mTempRunnables;
-  SimThread mThreads[THREAD_COUNT];
-  Barrier mBarrier;
+  SimThread* mThreads[THREAD_COUNT];
+  Barrier mStartBarrier, mEndBarrier;
   std::mutex mStartMut;
   std::condition_variable mStartCV;
+  bool mRunning = true;
 };
 
 class SimThread
 {
+  friend SimEnv;
 public:
   SimThread(SimEnv* myEnv, uint8_t index);
+  ~SimThread();
 private:
   uint8_t mIndex;
   SimEnv* mEnv;
   std::thread mThread;
+  std::vector<Runnable*> mRunnables;
   void run(void);
 };
