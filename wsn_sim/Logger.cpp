@@ -1,6 +1,7 @@
 #include "Logger.h"
 #include <mutex>
 
+std::mutex Logger::mCoutMutex;
 
 std::ostream& operator<<(std::ostream& os, const Logger& log)
 {

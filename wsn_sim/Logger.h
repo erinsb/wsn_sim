@@ -38,8 +38,8 @@ private:
   static std::mutex mCoutMutex;
 };
 
-#define LOG_ERROR   std::cout << Logger("[ERROR][" + std::string(__FILE__) + ":L" + std::to_string(__LINE__) + "]", true)
-#define LOG_DEBUG   std::cout << Logger("[DEBUG][" + std::string(__FILE__) + ":L" + std::to_string(__LINE__) + "]", true)
-#define LOG_VERBOSE std::cout << Logger("[VERBOSE][" + std::string(__FILE__) + ":L" + std::to_string(__LINE__) + "]", true)
+#define LOG_ERROR   std::cout << Logger("[ERROR][" + std::string(__FUNCTION__) + ":L" + std::to_string(__LINE__) + "]", true)
+#define LOG_DEBUG   std::cout << Logger("[DEBUG][" + std::string(__FUNCTION__) + ":L" + std::to_string(__LINE__) + "]", true)
+#define LOG_VERBOSE std::cout << Logger("[VERBOSE][" + std::string(__FUNCTION__) + ":L" + std::to_string(__LINE__) + "]", true)
 
 #define LOGGER(prefix) std::cout << Logger(prefix, true)
