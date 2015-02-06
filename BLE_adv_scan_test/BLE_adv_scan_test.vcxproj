@@ -67,10 +67,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="AdvDevice.h" />
+    <ClInclude Include="ScanDevice.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AdvDevice.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="ScanDevice.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

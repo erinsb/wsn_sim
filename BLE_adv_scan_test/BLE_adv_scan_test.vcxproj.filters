@@ -18,12 +18,18 @@
     <ClInclude Include="AdvDevice.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ScanDevice.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AdvDevice.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ScanDevice.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
