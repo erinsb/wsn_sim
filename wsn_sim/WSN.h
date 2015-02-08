@@ -51,7 +51,7 @@ private:
   std::vector<RadioPacket*> mPackets;
   std::vector<PacketReceiver> mReceivers;
   bool mReceiverListChanged;
-  
+  std::mutex mReceiverListMut;
 
   std::vector<PacketReceiver*> getReceiversListening(RadioPacket* pPacket);
   std::vector<PacketReceiver*> getPacketReceiversInRange(RadioPacket* pPacket);

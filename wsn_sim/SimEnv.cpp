@@ -105,5 +105,4 @@ void SimThread::run(void)
 
   }
   mEnv->mEndBarrier.wait();
-  LOG_DEBUG << mRunning << " " << (uint32_t) mIndex;
 }
