@@ -49,6 +49,7 @@ public:
   void receive(void);
   void disable(void);
   void setPacket(uint8_t* packet, uint8_t length);
+  void setTifs(uint32_t tifs) { mTifs_us = (mTurnaroundTime_us > tifs)? mTurnaroundTime_us : tifs; }
 
   void shortToRx(void);
   void shortToTx(void);
