@@ -3,6 +3,8 @@
 #include <iostream>
 #include <sstream>
 #include <mutex>
+#include <varargs.h>
+#include <stdarg.h>
 
 #define LOG_ENABLE        (true)
 
@@ -43,3 +45,5 @@ private:
 #define LOG_VERBOSE std::cout << Logger("[VERBOSE][" + std::string(__FUNCTION__) + ":L" + std::to_string(__LINE__) + "]", true)
 
 #define LOGGER(prefix) std::cout << Logger(prefix, true)
+
+#define _LOG(str, ...) printf("[%s]: " str "\n", __FUNCTION__, __VA_ARGS__)
