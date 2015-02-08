@@ -92,11 +92,11 @@ void Radio::shortDisable(void)
 
 void Radio::receivePacket(RadioPacket* pPacket, uint8_t rx_strength, bool corrupted)
 {
-  mDevice->radioCallbackRx(pPacket, rx_strength, corrupted);
   mWSN->removeReceiver(this);
   shortToNextState();
+  mDevice->radioCallbackRx(pPacket, rx_strength, corrupted);
 
-  LOG_RX << pPacket;
+  //LOG_RX << pPacket;
 }
 
 void Radio::step(uint32_t timestamp)
