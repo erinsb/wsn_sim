@@ -171,9 +171,12 @@ bool WSN::PacketReceiver::hasPacket(RadioPacket* pPacket)
 
 bool WSN::PacketReceiver::packetIsCorrupted(RadioPacket* pPacket)
 {
-  for (RadioPacket* pIncomingPacket : mPackets)
+  if (mPackets.size() == 0)
+    return false;
+
+  for (auto it = mPackets.begin(); it != mPackets.end(); it++)
   { 
-    if (pIncomingPacket->collidesWith(pPacket))
+    if ((*it)->collidesWith(pPacket))
     {
       return true;
     }

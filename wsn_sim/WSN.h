@@ -14,7 +14,6 @@ public:
   WSN();
   ~WSN();
 
-  void addDevice(Device* device) { mDevices.push_back(device); }
 
   packetHandle_t startTransmit(RadioPacket& packet);
   void endTransmit(packetHandle_t packetHandle);
