@@ -19,6 +19,7 @@ void Timer::resetDrift(void)
 void Timer::orderAt(uint32_t timestamp, const std::function<void(uint32_t, void*)> callback, void* context)
 {
   mTimeouts.push_back(new Timeout(timestamp, callback, context));
+  getEnvironment()->registerExecution(this, getGlobalTimeAtLocalTime(timestamp));
   mIteratorInvalidated = true;
 }
 
@@ -39,7 +40,7 @@ void Timer::step(uint32_t timestamp)
   auto it = mTimeouts.begin(); 
   while (it != mTimeouts.end())
   {
-    if ((*it)->mTimestamp <= timestamp)
+    if ((*it)->mTimestamp <= getTimerTime(timestamp)) // watch out for the difference in drift and execution time for event driven Env
     {
       Timeout* to = *it;
       if (!to->invalid)
@@ -68,4 +69,9 @@ void Timer::step(uint32_t timestamp)
 uint32_t Timer::getTimerTime(uint32_t globalTime)
 {
   return uint32_t(mDriftFactor * (globalTime - mDriftAnchor) + mDriftAnchor);
+}
+
+uint32_t Timer::getGlobalTimeAtLocalTime(uint32_t time)
+{
+  return uint32_t(mDriftAnchor + (time - mDriftAnchor) / mDriftFactor);
 }
