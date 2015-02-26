@@ -1,6 +1,10 @@
 #include "WSN.h"
 #include "Logger.h"
 #include "Radio.h"
+#include <fstream>
+
+#define GRAPHVIZ_SCALING (10.0)
+
 
 WSN::WSN() : mPacketCount(0), mPacketsDeletedCount(0)
 {
@@ -16,6 +20,12 @@ WSN::PacketReceiver::PacketReceiver(Radio* radio) : mRadio(radio), mStartTime(ra
 
 void WSN::PacketReceiver::putPacket(RadioPacket* pPacket) { mPackets.push_back(pPacket); }
 
+
+void WSN::addDevice(Device* device) 
+{ 
+  mDevices.push_back(device); 
+  device->mWSN = this; 
+}
 
 packetHandle_t WSN::startTransmit(RadioPacket& packet)
 {
@@ -151,6 +161,86 @@ bool WSN::hasReceiver(Radio* radio)
   return false;
 }
 
+
+void WSN::addConnection(Device* first, Device* second, bool strong)
+{
+  if (connectionExists(first, second))
+    return;
+
+  connection_t conn;
+  conn.pFirst = first;
+  conn.pSecond = second;
+  conn.strong = strong;
+  mConnections.push_back(conn);
+}
+
+bool WSN::connectionExists(Device* first, Device* second)
+{
+  for (connection_t& conn : mConnections)
+  {
+    if (conn.is(first, second))
+      return true;
+  }
+  return false;
+}
+
+void WSN::removeConnection(Device* first, Device* second)
+{
+  for (auto it = mConnections.begin(); it != mConnections.end(); it++)
+  {
+    if (it->is(first, second))
+    {
+      mConnections.erase(it);
+      break;
+    }
+  }
+}
+
+std::vector<const Device*> WSN::getConnections(const Device* dev)
+{
+  std::vector<const Device*> resultVector;
+  for (connection_t& conn : mConnections)
+  {
+    if (conn.pFirst == dev)
+      resultVector.push_back(conn.pSecond);
+    else if (conn.pSecond == dev)
+      resultVector.push_back(conn.pFirst);
+  }
+
+  return resultVector;
+}
+
+void WSN::exportGraphViz(std::string filename)
+{
+  std::ofstream file; 
+  file.open(filename);
+
+  file << "strict graph {\n";
+  file << "\tnode [width = \"" << 0.025 * GRAPHVIZ_SCALING << 
+    "\" height =\"" << 0.025 * GRAPHVIZ_SCALING << "\" label=\"\", fixedsize=true]\n";
+
+  for (uint32_t i = 0; i < mDevices.size(); ++i)
+  {
+    file << "\t" << i
+      << " [pos=\"" << GRAPHVIZ_SCALING * mDevices[i]->pos.x << "," 
+      << GRAPHVIZ_SCALING * mDevices[i]->pos.y << "\"]\n";
+  }
+
+  for (connection_t& conn : mConnections)
+  {
+    file << "\t" << getDevIndex(conn.pFirst) << " --- " << getDevIndex(conn.pSecond);
+    if (!conn.strong)
+      file << " [style=dotted]";
+    file << "\n";
+  }
+  
+  file << "}";
+  while(file.is_open())
+    file.close();
+  std::string callstr = "neato -n2 -Tpng " + filename + " -O";
+  system(callstr.c_str());
+}
+
 void WSN::step(uint32_t timestamp)
 {
 
@@ -208,4 +298,14 @@ std::vector<WSN::PacketReceiver*> WSN::getPacketReceiversInRange(RadioPacket* pP
   }
   mReceiverListMut.unlock();
   return resultVector;
+}
+
+uint32_t WSN::getDevIndex(const Device* dev)
+{
+  for (uint32_t i = 0; i < mDevices.size(); ++i)
+  {
+    if (mDevices[i] == dev)
+      return i;
+  }
+  return 0xFFFFFFFF;
 }
