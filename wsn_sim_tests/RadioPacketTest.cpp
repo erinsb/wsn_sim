@@ -10,15 +10,13 @@ using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
 namespace wsn_sim_tests
 {
-
-  uint8_t dummydata[] = { 0, 1, 2, 3, 4 };
-  SimEnv env;
-  WSN network;
-  Device device;
-
 	TEST_CLASS(RadioPacketTest)
 	{
-	public:
+  public:
+    uint8_t dummydata[5];
+    SimEnv env;
+    WSN network;
+    Device device;
 
 		TEST_METHOD(PacketCollisionTest)
 		{
@@ -53,6 +51,8 @@ namespace wsn_sim_tests
 
     TEST_METHOD(CopyOperatorTest)
     {
+      env.attachRunnable(&network);
+      network.addDevice(device);
       RadioPacket packet1(device.getRadio(), dummydata, 5);
       RadioPacket packet2 = packet1;
       Assert::AreNotSame(packet1.getContents(), packet2.getContents(), L"Deep copy");
