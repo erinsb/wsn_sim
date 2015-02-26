@@ -6,14 +6,14 @@
 
 #include <functional>
 
-#define ADV_INT (100000)
 
 
-AdvDevice::AdvDevice(uint8_t* advPacket, uint32_t advPacketLength, uint8_t* scanPacket, uint32_t scanPacketLength):
+AdvDevice::AdvDevice(uint8_t* advPacket, uint32_t advPacketLength, uint8_t* scanPacket, uint32_t scanPacketLength, uint32_t advInt):
   mAdvPacket(advPacket),
   mAdvPacketLength(advPacketLength),
   mScanPacket(scanPacket),
-  mScanPacketLength(scanPacketLength)
+  mScanPacketLength(scanPacketLength),
+  mAdvInt(advInt)
 {
 }
 
@@ -60,7 +60,7 @@ void AdvDevice::radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool c
 void AdvDevice::startAdv(uint32_t timestamp, void* context)
 {
   _LOG("ADV %d", timestamp);
-  mTimer->orderRelative(ADV_INT, std::bind(&AdvDevice::startAdv, this, std::placeholders::_1, std::placeholders::_2));
+  mTimer->orderRelative(mAdvInt, std::bind(&AdvDevice::startAdv, this, std::placeholders::_1, std::placeholders::_2));
 
   mRadio->setPacket(mAdvPacket, mAdvPacketLength);
   mRadio->shortToRx();

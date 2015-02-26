@@ -4,7 +4,7 @@
 class AdvDevice : public Device
 {
 public:
-  AdvDevice(uint8_t* advPacket, uint32_t advPacketLength, uint8_t* scanPacket, uint32_t scanPacketLength);
+  AdvDevice(uint8_t* advPacket, uint32_t advPacketLength, uint8_t* scanPacket, uint32_t scanPacketLength, uint32_t advInt = 100000);
   ~AdvDevice();
 
   void start(void);
@@ -17,6 +17,7 @@ private:
   uint8_t* mScanPacket;
   uint32_t mScanPacketLength;
 
+  uint32_t mAdvInt;
 
   virtual void radioCallbackTx(RadioPacket* packet);
   virtual void radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool corrupted);
