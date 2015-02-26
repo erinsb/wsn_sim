@@ -3,14 +3,13 @@
 #include <iostream>
 #include <sstream>
 #include <mutex>
-#include <varargs.h>
 #include <stdarg.h>
 
-#define LOG_ENABLE        (true)
+#define LOG_ENABLE        (0)
 
-#define LOG_ENABLE_ERROR  (true)
-#define LOG_ENABLE_DEBUG  (true)
-#define LOG_ENABLE_VERBOSE (true)
+#define LOG_ENABLE_ERROR  (1)
+#define LOG_ENABLE_DEBUG  (1)
+#define LOG_ENABLE_VERBOSE (1)
 
 class Logger
 {
@@ -46,4 +45,8 @@ private:
 
 #define LOGGER(prefix) std::cout << Logger(prefix, true)
 
-#define _LOG(str, ...) printf("[%s]: " str "\n", __FUNCTION__, __VA_ARGS__)
+#if LOG_ENABLE
+  #define _LOG(str, ...) printf("[%s]: " str "\n", __FUNCTION__, __VA_ARGS__)
+#else
+  #define _LOG(str, ...) 
+#endif
