@@ -11,6 +11,13 @@ class Device : public Runnable
   friend Radio;
   friend Timer;
 public:
+  typedef struct 
+  {
+    double power_mA;
+    uint32_t timestamp;
+  }powerEvent_t;
+
+
   Device(double x, double y);
   Device();
   ~Device();
@@ -25,6 +32,7 @@ public:
   void registerPowerDrain(double power_mA);
   void removePowerDrain(double power_mA);
   std::vector<double> getPowerUsage(uint32_t firstSample = 0, uint32_t lastSample = UINT32_MAX) const;
+  std::vector<powerEvent_t> getPowerUsageEvents(void) { return powerUsage; }
   double getPowerUsageAvg(uint32_t firstSample = 0, uint32_t lastSample = UINT32_MAX) const;
 
   typedef struct
@@ -41,11 +49,6 @@ protected:
   virtual void radioCallbackTx(RadioPacket* packet);
   virtual void radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool corrupted);
 private:
-  typedef struct 
-  {
-    double power_mA;
-    uint32_t timestamp;
-  }powerEvent_t;
   std::mutex powerMut;
   std::vector<powerEvent_t> powerUsage;
 };
