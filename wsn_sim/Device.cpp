@@ -95,17 +95,12 @@ double Device::getPowerUsageAvg(uint32_t firstSample, uint32_t lastSample) const
   return total / size;
 }
 
+void Device::plotPower(uint32_t startTime, uint32_t endTime)
+{
+  PowerPlotter(this).displayGraph(startTime, endTime);
+}
+
 void Device::step(uint32_t timestamp)
-{
-
-}
-
-void Device::radioCallbackTx(RadioPacket* packet)
-{
-
-}
-
-void Device::radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool corrupted)
 {
 
 }

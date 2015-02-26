@@ -2,7 +2,7 @@
 #include "WSN.h"
 #include "Runnable.h"
 #include "Timer.h"
-
+#include "PowerPlotter.h"
 
 
 class Device : public Runnable
@@ -34,6 +34,7 @@ public:
   std::vector<double> getPowerUsage(uint32_t firstSample = 0, uint32_t lastSample = UINT32_MAX) const;
   std::vector<powerEvent_t> getPowerUsageEvents(void) { return powerUsage; }
   double getPowerUsageAvg(uint32_t firstSample = 0, uint32_t lastSample = UINT32_MAX) const;
+  void plotPower(uint32_t startTime = 0, uint32_t endTime = UINT32_MAX);
 
   typedef struct
   {
@@ -42,12 +43,11 @@ public:
 
   pos_t pos;
 
-
 protected:
   Radio* mRadio;
   Timer* mTimer;
-  virtual void radioCallbackTx(RadioPacket* packet);
-  virtual void radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool corrupted);
+  virtual void radioCallbackTx(RadioPacket* packet){};
+  virtual void radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool corrupted){};
 private:
   std::mutex powerMut;
   std::vector<powerEvent_t> powerUsage;
