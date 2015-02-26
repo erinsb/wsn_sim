@@ -83,6 +83,8 @@ void ScanDevice::radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool 
     mRadio->shortToRx();
     mRadio->setTifs(148);
     mWaitingForAdv = false;
+
+    mWSN->addConnection(this, packet->getSender()->getDevice(), false);
   }
   else
   {

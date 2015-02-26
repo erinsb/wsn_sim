@@ -38,6 +38,7 @@ public:
 protected:
   Radio* mRadio;
   Timer* mTimer;
+  WSN* mWSN;
   virtual void radioCallbackTx(RadioPacket* packet);
   virtual void radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool corrupted);
 private:

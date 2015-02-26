@@ -55,7 +55,7 @@ public:
   void shortToTx(void);
   void shortDisable(void);
 
-  void setWSN(WSN* wsn) { this->mWSN = wsn; }
+  void setWSN(WSN* wsn) { this->mWSN = wsn; mDevice->mWSN = wsn; }
 
   state_t getState(void) const { return mState; }
   uint8_t getSignalStrength(void) const { return mSigStrength; }
