@@ -43,12 +43,19 @@ public:
 
   pos_t pos;
 
+
 protected:
   Radio* mRadio;
   Timer* mTimer;
-  virtual void radioCallbackTx(RadioPacket* packet){};
-  virtual void radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool corrupted){};
+  WSN* mWSN;
+  virtual void radioCallbackTx(RadioPacket* packet);
+  virtual void radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool corrupted);
 private:
+  typedef struct 
+  {
+    double power_mA;
+    uint32_t timestamp;
+  }powerEvent_t;
   std::mutex powerMut;
   std::vector<powerEvent_t> powerUsage;
 };
