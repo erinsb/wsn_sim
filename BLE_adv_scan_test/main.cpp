@@ -1,52 +1,65 @@
 #include "AdvDevice.h"
 #include "ScanDevice.h"
 #include "WSN.h"
+#include "BlePacket.h"
 #include <iostream>
 #include <fstream>
 #include <vector>
 
-#define ADVDEV_COUNT  (100)
+#define ADVDEV_COUNT  (10)
 #define AREA          (100)
 
-int main(void)
+#define SIM_TIME      (1 * SECONDS)
+
+int main(int* argcp, char** argv)
 {
   WSN wsn;
   SimEnv simEnv;
   simEnv.attachRunnable(&wsn);
 
-  uint8_t advMsg[] {1, 2, 3, 4};
-  uint8_t scanMsg[] {5, 6, 7, 8};
+  ble_adv_packet_t adv_packet = {};
+  adv_packet.access_addr = 0xAABBCCDD;
+  adv_packet.addr_type = 0;
+  adv_packet.setAdvAddr(0xAABBCCDDEEFF);
+  adv_packet.length = 6 + 2;
+  adv_packet.payload.adv.raw[0] = 0xAA;
+  adv_packet.payload.adv.raw[1] = 0xBB;
+  adv_packet.type = BLE_PACKET_TYPE_ADV_DISCOVER_IND;
+
+  ble_adv_packet_t scan_req_packet = {};
+  scan_req_packet.access_addr = 0xAABBCCDD;
+  scan_req_packet.addr_type = 0;
+  scan_req_packet.setAdvAddr(0xAABBCCDDEEFF);
+  scan_req_packet.length = 6 + 2;
+  scan_req_packet.payload.adv.raw[0] = 0xCC;
+  scan_req_packet.payload.adv.raw[1] = 0xDD;
+  scan_req_packet.type = BLE_PACKET_TYPE_SCAN_RSP;
+
   ScanDevice scanDev;
   wsn.addDevice(scanDev);
-
+  AdvDevice* pFirstAdv = NULL;
   for (uint32_t i = 0; i < ADVDEV_COUNT; ++i)
   {
-    AdvDevice* pDev = new AdvDevice(advMsg, 4, scanMsg, 4, rand() % 100000 + 100000);
-
+    AdvDevice* pDev = new AdvDevice(&adv_packet, &scan_req_packet, rand() % 100000 + 100000);
+    if (i == 0)
+      pFirstAdv = pDev;
     pDev->pos.x = rand() % AREA;
     pDev->pos.y = rand() % AREA;
     wsn.addDevice(*pDev);
   
     pDev->start();
   }
-  
 
   scanDev.start(30000, 30000);
 
-  simEnv.run(2 * SECONDS);
+  simEnv.run(SIM_TIME);
 
-  
-#if 1
-  auto usage = scanDev.getPowerUsageEvents();
+  PowerPlotter plotter;
+  plotter.addDevice(pFirstAdv);
+  plotter.addDevice(&scanDev);
+  plotter.displayGraph(100*MS, 101*MS);
+  //pFirstAdv->plotPower(100*MS, 101*MS);
 
-  std::cout << std::endl;
-  std::ofstream ofs;
-  ofs.open("log.txt");
-  for (Device::powerEvent_t& ev : usage)
-    ofs << ev.power_mA << "\t" << ev.timestamp << std::endl;
-
-  std::cout << advDev.getPowerUsageAvg() << "mA" << std::endl;
-#endif
   system("pause");
   return 0;
 }
