@@ -53,11 +53,15 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
+      <AdditionalIncludeDirectories>..\MatplotPP;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
+    <Lib>
+      <AdditionalDependencies>..\MatplotPP\matplotpp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -81,6 +85,7 @@
     <ClInclude Include="Device.h" />
     <ClInclude Include="Logger.h" />
     <ClInclude Include="Multithreading.h" />
+    <ClInclude Include="PowerPlotter.h" />
     <ClInclude Include="Radio.h" />
     <ClInclude Include="RadioPacket.h" />
     <ClInclude Include="Runnable.h" />
@@ -91,6 +96,7 @@
   <ItemGroup>
     <ClCompile Include="Device.cpp" />
     <ClCompile Include="Logger.cpp" />
+    <ClCompile Include="PowerPlotter.cpp" />
     <ClCompile Include="Radio.cpp" />
     <ClCompile Include="RadioPacket.cpp" />
     <ClCompile Include="Runnable.cpp" />

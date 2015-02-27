@@ -42,6 +42,9 @@
     <ClInclude Include="Multithreading.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="PowerPlotter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Device.cpp">
@@ -66,6 +69,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Timer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PowerPlotter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
