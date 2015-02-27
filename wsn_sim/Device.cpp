@@ -97,7 +97,7 @@ double Device::getPowerUsageAvg(uint32_t firstSample, uint32_t lastSample) const
 
 void Device::plotPower(uint32_t startTime, uint32_t endTime)
 {
-  PowerPlotter(this).displayGraph(startTime, endTime);
+  PowerPlotter().displayGraph(startTime, endTime, this);
 }
 
 void Device::step(uint32_t timestamp)
