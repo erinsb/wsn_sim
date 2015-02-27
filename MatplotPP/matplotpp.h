@@ -14,9 +14,16 @@ Version:0.3.11
 #include <math.h>
 #include <time.h>
 #include "gl2ps.h"
-#include "GL/glut.h"
+#include "GL\glut.h"
+
+#ifndef IMPORT
+#define CLASS_DECLSPEC    __declspec(dllexport)
+#else
+#define CLASS_DECLSPEC    __declspec(dllimport)
+#endif
 
 using namespace std;
+
 
 #define PI 3.14159265358979323846264
 
@@ -259,7 +266,7 @@ class Line{///
 	//PlotStyle=0;
     }   
 };
-class Surface{///
+class  Surface{///
  public:
     int type;
     int id;
@@ -365,7 +372,7 @@ struct ContourPoint{
 };
 dmat contourc(dvec x, dvec y, dmat Z, dvec v);
 
-class MatPlot{///
+class CLASS_DECLSPEC MatPlot{///
  private:
     int is_debug1;
     int is_debug2;

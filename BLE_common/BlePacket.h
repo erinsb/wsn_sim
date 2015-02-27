@@ -16,7 +16,11 @@ typedef enum
   BLE_PACKET_TYPE_ADV_DISCOVER_IND
 } ble_packet_type_t;
 
-typedef uint8_t ble_adv_addr_t[6];
+typedef union
+{
+  uint64_t raw : 48;
+  uint8_t arr[6];
+} ble_adv_addr_t;
 
 typedef struct
 {
@@ -59,16 +63,15 @@ typedef struct
     }conn_req;
   } payload;
 
-  void setAdvAddr(uint8_t* addr) { memcpy(adv_addr, addr, 6); }
+  void setAdvAddr(uint8_t* addr) { memcpy(adv_addr.arr, addr, 6); }
   void setAdvAddr(uint8_t a0, uint8_t a1, uint8_t a2, uint8_t a3, uint8_t a4, uint8_t a5) 
   {
     uint8_t temp[] = { a0, a1, a2, a3, a4, a5 };
-    memcpy(adv_addr, temp, 6); 
+    memcpy(adv_addr.arr, temp, 6); 
   }
   void setAdvAddr(uint64_t addr) 
   { 
-    for (uint8_t i = 0; i < 6; ++i)
-      adv_addr[i] = (addr >> (40 - i * 8));
+    adv_addr.raw = addr & 0xFFFFFFFFFFFF0000;
   }
 }ble_adv_packet_t;
 #pragma pack(pop)

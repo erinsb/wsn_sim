@@ -98,7 +98,7 @@ void PowerPlotter::specialKeys(int key, int x, int y)
     tempEndTime -= delta;
     break;
   case GLUT_KEY_UP:
-    if (tempStartTime < movement_speed)
+    if (tempStartTime < (uint32_t) movement_speed)
     {
       tempEndTime += movement_speed - tempStartTime;
       tempStartTime = 0;

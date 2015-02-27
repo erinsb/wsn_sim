@@ -36,7 +36,7 @@ int main(int* argcp, char** argv)
   scan_req_packet.type = BLE_PACKET_TYPE_SCAN_RSP;
 
   ScanDevice scanDev;
-  wsn.addDevice(scanDev);
+  wsn.addDevice(&scanDev);
   AdvDevice* pFirstAdv = NULL;
   for (uint32_t i = 0; i < ADVDEV_COUNT; ++i)
   {
@@ -45,7 +45,7 @@ int main(int* argcp, char** argv)
       pFirstAdv = pDev;
     pDev->pos.x = rand() % AREA;
     pDev->pos.y = rand() % AREA;
-    wsn.addDevice(*pDev);
+    wsn.addDevice(pDev);
   
     pDev->start();
   }

@@ -71,6 +71,11 @@
   <ItemGroup>
     <ClCompile Include="BlePacket.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\wsn_sim\wsn_sim.vcxproj">
+      <Project>{dc109a5d-d6f2-45d6-9e45-5b0454ea9752}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

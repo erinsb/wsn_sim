@@ -10,9 +10,10 @@ class MeshDevice : public Device
 public:
   MeshDevice(uint8_t* defaultData, uint32_t defaultLength, double x = 0.0, double y = 0.0);
   ~MeshDevice();
+  void setAdvAddress(uint64_t addr);
 
-  void startSearch(uint32_t slotCount);
-  void stopSearch();
+  void startSearch(void);
+  void stopSearch(void);
 
   void registerNeighbor(MeshDevice* device);
 
@@ -23,10 +24,11 @@ private:
   std::vector<MeshDevice*> mNeighbors;
   std::queue<RadioPacket*> mPacketQueue;
   RadioPacket* mDefaultPacket = NULL;
-  uint32_t mSearchLightSlots;
-  uint32_t mCurrentSlotIndex;
-  uint32_t mSearchLightStartTime;
+  bool mSearching;
+  ble_adv_addr_t myAddr;
 
-  void searchLightBeacon(bool doubleSlot = false);
+  virtual void radioCallbackTx(RadioPacket* packet);
+  virtual void radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool corrupted);
 };
 
+  
