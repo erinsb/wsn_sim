@@ -21,6 +21,9 @@
     <ClInclude Include="ScanDevice.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MeshDevice.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AdvDevice.cpp">
@@ -30,6 +33,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ScanDevice.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MeshDevice.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -6,10 +6,19 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wsn_sim", "wsn_sim\wsn_sim.vcxproj", "{DC109A5D-D6F2-45D6-9E45-5B0454EA9752}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "wsn_sim_tests", "wsn_sim_tests\wsn_sim_tests.vcxproj", "{325611C7-AB59-4F2E-92F3-7003D1E8E0B2}"
+	ProjectSection(ProjectDependencies) = postProject
+		{DC109A5D-D6F2-45D6-9E45-5B0454EA9752} = {DC109A5D-D6F2-45D6-9E45-5B0454EA9752}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BLE_adv_scan_test", "BLE_adv_scan_test\BLE_adv_scan_test.vcxproj", "{9E982DA0-15DB-494A-A9C4-0E75E369D0AB}"
+	ProjectSection(ProjectDependencies) = postProject
+		{DC109A5D-D6F2-45D6-9E45-5B0454EA9752} = {DC109A5D-D6F2-45D6-9E45-5B0454EA9752}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BLE_common", "BLE_common\BLE_common.vcxproj", "{210087B7-B877-415B-9FB2-5A802F4103C4}"
+	ProjectSection(ProjectDependencies) = postProject
+		{DC109A5D-D6F2-45D6-9E45-5B0454EA9752} = {DC109A5D-D6F2-45D6-9E45-5B0454EA9752}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
