@@ -22,7 +22,9 @@ int main(void)
 
   simEnv.run(2000000);
   
-#if 1
+  wsn.exportGraphViz("testGraph");
+
+#if 0
   auto usage = scanDev.getPowerUsage();
 
   std::cout << std::endl;
