@@ -67,13 +67,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="AdvDevice.h" />
-    <ClInclude Include="MeshDevice.h" />
     <ClInclude Include="ScanDevice.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AdvDevice.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="MeshDevice.cpp" />
     <ClCompile Include="ScanDevice.cpp" />
   </ItemGroup>
   <ItemGroup>

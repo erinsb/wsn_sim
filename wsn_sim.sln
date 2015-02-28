@@ -20,6 +20,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BLE_common", "BLE_common\BL
 		{DC109A5D-D6F2-45D6-9E45-5B0454EA9752} = {DC109A5D-D6F2-45D6-9E45-5B0454EA9752}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MeshTesting", "MeshTesting\MeshTesting.vcxproj", "{9E840462-B907-4F21-8135-9228F0664CE7}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Matplotpp", "MatplotPP\MatplotPP.vcxproj", "{8D06BFE2-6127-42D7-A8EA-9990EDB5F34D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -43,6 +47,14 @@ Global
 		{210087B7-B877-415B-9FB2-5A802F4103C4}.Debug|Win32.Build.0 = Debug|Win32
 		{210087B7-B877-415B-9FB2-5A802F4103C4}.Release|Win32.ActiveCfg = Release|Win32
 		{210087B7-B877-415B-9FB2-5A802F4103C4}.Release|Win32.Build.0 = Release|Win32
+		{9E840462-B907-4F21-8135-9228F0664CE7}.Debug|Win32.ActiveCfg = Debug|Win32
+		{9E840462-B907-4F21-8135-9228F0664CE7}.Debug|Win32.Build.0 = Debug|Win32
+		{9E840462-B907-4F21-8135-9228F0664CE7}.Release|Win32.ActiveCfg = Release|Win32
+		{9E840462-B907-4F21-8135-9228F0664CE7}.Release|Win32.Build.0 = Release|Win32
+		{8D06BFE2-6127-42D7-A8EA-9990EDB5F34D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{8D06BFE2-6127-42D7-A8EA-9990EDB5F34D}.Debug|Win32.Build.0 = Debug|Win32
+		{8D06BFE2-6127-42D7-A8EA-9990EDB5F34D}.Release|Win32.ActiveCfg = Release|Win32
+		{8D06BFE2-6127-42D7-A8EA-9990EDB5F34D}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
