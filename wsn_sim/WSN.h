@@ -14,7 +14,6 @@ public:
   WSN();
   ~WSN();
 
-  void addDevice(Device* device);
 
   packetHandle_t startTransmit(RadioPacket& packet);
   void endTransmit(packetHandle_t packetHandle);
@@ -24,7 +23,7 @@ public:
   bool removeReceiver(Radio* radio);
   bool hasReceiver(Radio* radio);
 
-  void addDevice(Device& device);
+  void addDevice(Device* device);
 
   RadioPacket* getRadioPacket(packetHandle_t handle) const;
   std::vector<RadioPacket*> getPacketsInFlight(void) const;
@@ -38,6 +37,16 @@ public:
   virtual void step(uint32_t timestamp);
 
 private:
+  typedef struct
+  {
+    const Device *pFirst, *pSecond;
+    bool strong;
+    bool is(const Device* one, const Device* two) const
+    {
+      return (pFirst == one && pSecond == two) || (pFirst == two && pSecond == one);
+    }
+  } connection_t;
+
   class PacketReceiver
   {
   public:
@@ -52,26 +61,16 @@ private:
     std::vector<RadioPacket*> mPackets;
   };
 
-  typedef struct
-  {
-    const Device *pFirst, *pSecond;
-    bool strong;
-    bool is(const Device* one, const Device* two) const
-    {
-      return (pFirst == one && pSecond == two) || (pFirst == two && pSecond == one);
-    }
-  } connection_t;
-
   uint32_t mPacketCount, mPacketsDeletedCount;
   std::vector<Device*> mDevices;
   std::vector<RadioPacket*> mPackets;
   std::vector<PacketReceiver> mReceivers;
-  std::vector<connection_t> mConnections;
   bool mReceiverListChanged;
   std::mutex mReceiverListMut;
+  uint32_t getDevIndex(const Device* dev);
+  std::vector<connection_t> mConnections;
 
   std::vector<PacketReceiver*> getReceiversListening(RadioPacket* pPacket);
   std::vector<PacketReceiver*> getPacketReceiversInRange(RadioPacket* pPacket);
-  uint32_t getDevIndex(const Device* dev);
 };
 

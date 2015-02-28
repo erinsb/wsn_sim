@@ -21,12 +21,6 @@ WSN::PacketReceiver::PacketReceiver(Radio* radio) : mRadio(radio), mStartTime(ra
 void WSN::PacketReceiver::putPacket(RadioPacket* pPacket) { mPackets.push_back(pPacket); }
 
 
-void WSN::addDevice(Device* device) 
-{ 
-  mDevices.push_back(device); 
-  device->mWSN = this; 
-}
-
 packetHandle_t WSN::startTransmit(RadioPacket& packet)
 {
   RadioPacket* pPacket = new RadioPacket(packet);
@@ -89,14 +83,14 @@ void WSN::abortTransmit(packetHandle_t packetHandle)
   // Packet should not be cleared from receiver lists, as it may have caused collisions that are yet to be calculated
 }
 
-void WSN::addDevice(Device& device)
+void WSN::addDevice(Device* device)
 {
-  mDevices.push_back(&device);
-  device.getRadio()->setWSN(this);
+  mDevices.push_back(device);
+  device->getRadio()->setWSN(this);
   
-  getEnvironment()->attachRunnable(&device);
-  getEnvironment()->attachRunnable(device.mRadio);
-  getEnvironment()->attachRunnable(device.mTimer);
+  getEnvironment()->attachRunnable(device);
+  getEnvironment()->attachRunnable(device->mRadio);
+  getEnvironment()->attachRunnable(device->mTimer);
 }
 
 RadioPacket* WSN::getRadioPacket(packetHandle_t handle) const 
@@ -261,9 +255,12 @@ bool WSN::PacketReceiver::hasPacket(RadioPacket* pPacket)
 
 bool WSN::PacketReceiver::packetIsCorrupted(RadioPacket* pPacket)
 {
-  for (RadioPacket* pIncomingPacket : mPackets)
+  if (mPackets.size() == 0)
+    return false;
+
+  for (auto it = mPackets.begin(); it != mPackets.end(); it++)
   { 
-    if (pIncomingPacket->collidesWith(pPacket))
+    if ((*it)->collidesWith(pPacket))
     {
       return true;
     }

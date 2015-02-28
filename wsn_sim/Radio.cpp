@@ -20,8 +20,7 @@ Radio::Radio(Device* device, uint8_t sigStrength, uint32_t turnaroundTime_us, ui
   mTurnaroundTime_us(turnaroundTime_us), 
   mBitrate(bitrate),
   mState(RADIO_STATE_IDLE),
-  mShort(SHORT_DISABLED),
-  mNextStateTime(0)
+  mShort(SHORT_DISABLED)
 {
   // can't be faster than hardware allows
   mTifs_us = (tifs_us > turnaroundTime_us) ? tifs_us : turnaroundTime_us;
@@ -36,7 +35,7 @@ void Radio::transmit(void)
   if (mState == RADIO_STATE_IDLE)
   {
     setState(RADIO_STATE_RAMPUP_TX);
-    mNextStateTime = getEnvironment()->getTimestamp() + mTurnaroundTime_us;
+    getEnvironment()->registerExecution(this, getEnvironment()->getTimestamp() + mTurnaroundTime_us);
   }
   else
   {
@@ -49,7 +48,7 @@ void Radio::receive(void)
   if (mState == RADIO_STATE_IDLE)
   {
     setState(RADIO_STATE_RAMPUP_RX);
-    mNextStateTime = getEnvironment()->getTimestamp() + mTurnaroundTime_us;
+    getEnvironment()->registerExecution(this, getEnvironment()->getTimestamp() + mTurnaroundTime_us);
   }
   else
   {
@@ -101,43 +100,38 @@ void Radio::receivePacket(RadioPacket* pPacket, uint8_t rx_strength, bool corrup
 
 void Radio::step(uint32_t timestamp)
 {
-  if (timestamp >= mNextStateTime)
+  switch (mState)
   {
-    switch (mState)
-    {
-    case RADIO_STATE_IDLE:
-      // wait for external tx or rx call
-      mNextStateTime = UINT32_MAX;
-      break;
+  case RADIO_STATE_IDLE:
+    // wait for external tx or rx call
+    break;
 
-    case RADIO_STATE_RAMPUP_RX:
-      mWSN->addReceiver(this);
-      mNextStateTime = UINT32_MAX;
-      setState(RADIO_STATE_RX);
-      break;
+  case RADIO_STATE_RAMPUP_RX:
+    mWSN->addReceiver(this);
+    setState(RADIO_STATE_RX);
+    break;
 
-    case RADIO_STATE_RAMPUP_TX:
-      mTxPacketHandle = mWSN->startTransmit(mCurrentPacket);
-      mNextStateTime = timestamp + getTxTime(mCurrentPacket.getLength());
-      setState(RADIO_STATE_TX);
-      break;
+  case RADIO_STATE_RAMPUP_TX:
+    mTxPacketHandle = mWSN->startTransmit(mCurrentPacket);
+    getEnvironment()->registerExecution(this, timestamp + getTxTime(mCurrentPacket.getLength()));
+    setState(RADIO_STATE_TX);
+    break;
 
-    case RADIO_STATE_RX:
-      // is this possible?
-      mWSN->removeReceiver(this);
-      shortToNextState();
-      mDevice->radioCallbackRx(NULL, 0, true);
-      break;
+  case RADIO_STATE_RX:
+    // is this possible?
+    mWSN->removeReceiver(this);
+    shortToNextState();
+    mDevice->radioCallbackRx(NULL, 0, true);
+    break;
 
-    case RADIO_STATE_TX:
-      mWSN->endTransmit(mTxPacketHandle);
-      shortToNextState();
-      mDevice->radioCallbackTx(&mCurrentPacket);
-      break;
+  case RADIO_STATE_TX:
+    mWSN->endTransmit(mTxPacketHandle);
+    shortToNextState();
+    mDevice->radioCallbackTx(&mCurrentPacket);
+    break;
 
-    default:
-      LOG_ERROR << "Radio: illegal state";
-    }
+  default:
+    LOG_ERROR << "Radio: illegal state";
   }
 }
 
@@ -146,11 +140,10 @@ void Radio::shortToNextState(void)
   if (mShort == SHORT_DISABLED)
   {
     setState(RADIO_STATE_IDLE);
-    mNextStateTime = UINT32_MAX;
   }
   else
   {
-    mNextStateTime = getEnvironment()->getTimestamp() + mTifs_us;
+    getEnvironment()->registerExecution(this, getEnvironment()->getTimestamp() + mTifs_us);
 
     if (mShort == SHORT_TO_RX)
     {

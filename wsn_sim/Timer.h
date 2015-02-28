@@ -36,6 +36,8 @@ public:
 
   virtual void step(uint32_t timestamp);
 
+  uint32_t getGlobalTimeAtLocalTime(uint32_t time);
+
 private:
   uint32_t mDriftAnchor;
   double mDriftFactor;

@@ -89,7 +89,6 @@ private:
   uint32_t mBitrate;
   uint8_t mTifs_us;
   uint8_t mSigStrength;
-  uint32_t mNextStateTime;
 
   static const double powerProfile[7];
   

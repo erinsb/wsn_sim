@@ -44,11 +44,11 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(ProjectDir)..\wsn_sim;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)..\wsn_sim;$(ProjectDir)..\BLE_common;..\MatplotPP;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(ProjectDir)..\Debug\wsn_sim.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(ProjectDir)..\Debug\wsn_sim.lib;$(ProjectDir)..\MatplotPP\GL\glut32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -75,6 +75,11 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MeshDevice.cpp" />
     <ClCompile Include="ScanDevice.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\wsn_sim\wsn_sim.vcxproj">
+      <Project>{dc109a5d-d6f2-45d6-9e45-5b0454ea9752}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

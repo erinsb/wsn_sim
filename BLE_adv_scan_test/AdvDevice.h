@@ -1,10 +1,11 @@
 #pragma once
 #include "Device.h"
+#include "BlePacket.h"
 
 class AdvDevice : public Device
 {
 public:
-  AdvDevice(uint8_t* advPacket, uint32_t advPacketLength, uint8_t* scanPacket, uint32_t scanPacketLength);
+  AdvDevice(ble_adv_packet_t* advPacket, ble_adv_packet_t* scanPacket, uint32_t advInt = 100000);
   ~AdvDevice();
 
   void start(void);
@@ -12,11 +13,10 @@ public:
   virtual void step(uint32_t timestamp);
 
 private:
-  uint8_t* mAdvPacket;
-  uint32_t mAdvPacketLength;
-  uint8_t* mScanPacket;
-  uint32_t mScanPacketLength;
+  ble_adv_packet_t* mAdvPacket;
+  ble_adv_packet_t* mScanPacket;
 
+  uint32_t mAdvInt;
 
   virtual void radioCallbackTx(RadioPacket* packet);
   virtual void radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool corrupted);
