@@ -2,7 +2,8 @@
 #include "RadioPacket.h"
 #include <stdint.h>
 
-#define BLE_PACKET_OVERHEAD_LENGTH (6)
+#define BLE_PACKET_OVERHEAD_LENGTH  (6)
+#define BLE_ADV_ADDR_LEN            (6)
 
 #pragma pack(push, 1)
 typedef enum
@@ -15,6 +16,14 @@ typedef enum
   BLE_PACKET_TYPE_CONN_REQ,
   BLE_PACKET_TYPE_ADV_DISCOVER_IND
 } ble_packet_type_t;
+
+typedef struct
+{
+  ble_packet_type_t type : 4;
+  uint8_t _rfu1 : 2;
+  uint8_t addr_type : 2;
+  uint8_t length;
+} ble_packet_header_t;
 
 typedef union
 {
@@ -29,10 +38,7 @@ bool operator !=(ble_adv_addr_t const& left, ble_adv_addr_t const& right);
 typedef struct
 {
   uint32_t access_addr;
-  ble_packet_type_t type : 4;
-  uint8_t _rfu1 : 2;
-  uint8_t addr_type : 2;
-  uint8_t length;
+  ble_packet_header_t header;
   ble_adv_addr_t adv_addr;
   union
   {
@@ -79,42 +85,3 @@ typedef struct
   }
 }ble_adv_packet_t;
 #pragma pack(pop)
-
-#if 0
-class BlePacket
-{
-public:
-  BlePacket(uint32_t accessAddr, uint8_t payloadLength = 0, uint8_t* rawPayload = NULL);
-  ~BlePacket();
-
-  virtual uint8_t* raw(void);
-  virtual void parseFrom(uint8_t* data, uint16_t length);
-  uint8_t length;
-  
-private:
-  uint32_t accessAddr;
-  ble_packet_type_t type;
-  uint8_t payload[255];  
-};
-
-typedef struct
-{
-  uint8_t len;
-  uint16_t type;
-  uint8_t data[25];
-}ble_adv_data_t;
-
-class AdvPacket : BlePacket
-{
-public:
-  AdvPacket(uint32_t accessAddr, ble_adv_addr_t adv_addr) : BlePacket(accessAddr) { memcpy(mAdvAddr, adv_addr, 6); }
-
-  void advDataAdd(ble_adv_data_t& adv_data);
-  void advDataRemove(uint16_t type);
-  bool advDataInPacket(uint16_t type);
-
-private:
-  ble_adv_addr_t mAdvAddr;
-  std::vector<ble_adv_data_t> mAdvDataEntries;
-};
-#endif
