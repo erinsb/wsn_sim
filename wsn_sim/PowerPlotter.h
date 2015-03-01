@@ -1,5 +1,5 @@
 #pragma once
-#include "matplotpp.h"
+#include "../MatplotPP/matplotpp.h"
 #include "Device.h"
 
 class PowerPlotter : public MatPlot
