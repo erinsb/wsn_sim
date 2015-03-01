@@ -22,6 +22,10 @@ typedef union
   uint8_t arr[6];
 } ble_adv_addr_t;
 
+bool operator ==(ble_adv_addr_t const& left, ble_adv_addr_t const& right);
+bool operator !=(ble_adv_addr_t const& left, ble_adv_addr_t const& right);
+
+
 typedef struct
 {
   uint32_t access_addr;
