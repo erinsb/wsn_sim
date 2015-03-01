@@ -24,7 +24,7 @@ namespace wsn_sim_tests
       {
         mSimEnv.attachRunnable(&mWSN);
 
-        mWSN.addDevice(mDevice);
+        mWSN.addDevice(&mDevice);
         pRadio = mDevice.getRadio();
         for (uint8_t i = 0; i < 5; ++i)
           dummyData[i] = i;

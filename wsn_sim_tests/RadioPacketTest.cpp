@@ -21,7 +21,7 @@ namespace wsn_sim_tests
 		TEST_METHOD(PacketCollisionTest)
 		{
       env.attachRunnable(&network);
-      network.addDevice(device);
+      network.addDevice(&device);
 
       RadioPacket packet1(device.getRadio(), dummydata, 5);
       RadioPacket packet2(device.getRadio(), dummydata, 5);
@@ -52,7 +52,7 @@ namespace wsn_sim_tests
     TEST_METHOD(CopyOperatorTest)
     {
       env.attachRunnable(&network);
-      network.addDevice(device);
+      network.addDevice(&device);
       RadioPacket packet1(device.getRadio(), dummydata, 5);
       RadioPacket packet2 = packet1;
       Assert::AreNotSame(packet1.getContents(), packet2.getContents(), L"Deep copy");
