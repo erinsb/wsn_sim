@@ -240,7 +240,7 @@ float MatPlot::cty2(double y){
   if (ca->YScale == 0){//linear
     return ca->Position[1] + ca->Position[3] * ((y - ca->YLim[0]) / (ca->YLim[1] - ca->YLim[0]));
   }
-  if (ca->YScale == 1){//log
+  else {//log
     return ca->Position[1] + ca->Position[3] * (log10(y) - log10(ca->YLim[0])) / (log10(ca->YLim[1]) - log10(ca->YLim[0]));
   }
 }
@@ -249,7 +249,7 @@ float MatPlot::ctx(double x){
   if (ca->XScale == 0){//linear
     return (x - ca->XLim[0]) / (ca->XLim[1] - ca->XLim[0]);
   }
-  if (ca->XScale == 1){//log
+  else {//log
     return (log10(x) - log10(ca->XLim[0])) / (log10(ca->XLim[1]) - log10(ca->XLim[0]));
   }
 }
@@ -257,7 +257,7 @@ float MatPlot::cty(double y){
   if (ca->YScale == 0){//linear
     return (y - ca->YLim[0]) / (ca->YLim[1] - ca->YLim[0]);
   }
-  if (ca->YScale == 1){//log
+  else {//log
     return (log10(y) - log10(ca->YLim[0])) / (log10(ca->YLim[1]) - log10(ca->YLim[0]));
   }
 }
@@ -3132,6 +3132,11 @@ vector<float> MatPlot::colormap(string c, float t){
     rgb[2] = t;
     return rgb;
   }
+
+  rgb[0] = t;
+  rgb[1] = t;
+  rgb[2] = t;
+  return rgb;
 }
 void MatPlot::colormap(string c){
   //if(is_debug1){printf("colormap %s \n",c.c_str());}
