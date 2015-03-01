@@ -84,8 +84,8 @@ namespace wsn_sim_tests
 		{
       TestDevice dev1(0.0, 0.0);
       TestDevice dev2(1.0, 0.0);
-      mWSN.addDevice(dev1);
-      mWSN.addDevice(dev2);
+      mWSN.addDevice(&dev1);
+      mWSN.addDevice(&dev2);
 
       uint8_t dummyData[] {1, 2, 3, 4, 5};
       dev1.doRx(dummyData, 5);
