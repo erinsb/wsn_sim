@@ -2,6 +2,7 @@
 #include "Runnable.h"
 #include <functional>
 
+#define PPM   (1.0 / 1000000.0)
 
 class Timeout
 {
