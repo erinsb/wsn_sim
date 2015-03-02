@@ -93,7 +93,8 @@ void Radio::receivePacket(RadioPacket* pPacket, uint8_t rx_strength, bool corrup
 {
   mWSN->removeReceiver(this);
   shortToNextState();
-  mDevice->radioCallbackRx(pPacket, rx_strength, corrupted);
+  RadioPacket localPacket(*pPacket);
+  mDevice->radioCallbackRx(&localPacket, rx_strength, corrupted);
 
   //LOG_RX << pPacket;
 }
