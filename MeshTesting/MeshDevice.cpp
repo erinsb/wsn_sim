@@ -17,11 +17,11 @@ uint32_t mesh_packet_t::getPayloadLength(void)
   case MESH_ADV_TYPE_DEFAULT:
     return 0;
   case MESH_ADV_TYPE_BROADCAST:
-    return payload.str.adv_len - MESH_PACKET_BROADCAST_OVERHEAD_LENGTH;
+    return payload.str.adv_len - MESH_PACKET_OVERHEAD_BROADCAST;
   case MESH_ADV_TYPE_NEIGHBOR_NOTIFICATION:
     return 0;
   case MESH_ADV_TYPE_UNICAST:
-    return payload.str.adv_len - MESH_PACKET_UNICAST_OVERHEAD_LENGTH;
+    return payload.str.adv_len - MESH_PACKET_OVERHEAD_UNICAST;
   default:
     return 0;
   }
@@ -121,7 +121,7 @@ MeshDevice::MeshDevice(uint8_t* defaultData, uint32_t defaultLength, double x, d
 
   // must use some time at the beginning to find devices
   startSearch();
-  mTimer->orderRelative(MESH_INTERVAL + MESH_CH_BEACON_MARGIN, std::bind(&MeshDevice::);
+  mTimer->orderRelative(MESH_INTERVAL + MESH_CH_BEACON_MARGIN, [](uint32_t timeout, void* context) { ((MeshDevice*)context)->electClusterHead(); }, this);
 }
 
 
@@ -204,9 +204,9 @@ void MeshDevice::transmitUnicast(
 {
   mesh_packet_t* pPacket = new mesh_packet_t();
   pPacket->access_addr = MESH_ACCESS_ADDR;
-  pPacket->header.length = MESH_PACKET_OVERHEAD_LENGTH + MESH_PACKET_UNICAST_OVERHEAD_LENGTH + length;
+  pPacket->header.length = MESH_PACKET_OVERHEAD + MESH_PACKET_OVERHEAD_UNICAST + length;
   pPacket->header.type = BLE_PACKET_TYPE_ADV_IND;
-  pPacket->payload.str.adv_len = MESH_PACKET_UNICAST_OVERHEAD_LENGTH + length;
+  pPacket->payload.str.adv_len = MESH_PACKET_OVERHEAD_UNICAST + length;
   pPacket->payload.str.adv_type = MESH_ADV_TYPE_UNICAST;
   pPacket->payload.str.payload.data.unicast.source_dist = source_dist;
   pPacket->payload.str.payload.data.unicast.dest_dist = dest_dist;
@@ -226,9 +226,9 @@ void MeshDevice::transmitBroadcast(
 {
   mesh_packet_t* pPacket = new mesh_packet_t();
   pPacket->access_addr = MESH_ACCESS_ADDR;
-  pPacket->header.length = MESH_PACKET_OVERHEAD_LENGTH + MESH_PACKET_BROADCAST_OVERHEAD_LENGTH + length;
+  pPacket->header.length = MESH_PACKET_OVERHEAD + MESH_PACKET_OVERHEAD_BROADCAST + length;
   pPacket->header.type = BLE_PACKET_TYPE_ADV_IND;
-  pPacket->payload.str.adv_len = MESH_PACKET_BROADCAST_OVERHEAD_LENGTH + length;
+  pPacket->payload.str.adv_len = MESH_PACKET_OVERHEAD_BROADCAST + length;
   pPacket->payload.str.adv_type = MESH_ADV_TYPE_BROADCAST;
   memcpy(pPacket->adv_addr.arr, mMyAddr.arr, BLE_ADV_ADDR_LEN);
   memcpy(pPacket->payload.str.payload.data.broadcast.source.arr, source->arr, BLE_ADV_ADDR_LEN);
@@ -241,9 +241,9 @@ void MeshDevice::transmitNeighborNotification(MeshNeighbor* pNb)
 {
   mesh_packet_t* pPacket = new mesh_packet_t();
   pPacket->access_addr = MESH_ACCESS_ADDR;
-  pPacket->header.length = MESH_PACKET_OVERHEAD_LENGTH + MESH_PACKET_NBNOT_OVERHEAD_LENGTH;
+  pPacket->header.length = MESH_PACKET_OVERHEAD + MESH_PACKET_OVERHEAD_NBNOT;
   pPacket->header.type = BLE_PACKET_TYPE_ADV_IND;
-  pPacket->payload.str.adv_len = MESH_PACKET_NBNOT_OVERHEAD_LENGTH;
+  pPacket->payload.str.adv_len = MESH_PACKET_OVERHEAD_NBNOT;
   pPacket->payload.str.adv_type = MESH_ADV_TYPE_NEIGHBOR_NOTIFICATION;
   memcpy(pPacket->adv_addr.arr, mMyAddr.arr, BLE_ADV_ADDR_LEN);
   memcpy(pPacket->payload.str.payload.neighborNotification.neighborAddr.arr, pNb->mAdvAddr.arr, BLE_ADV_ADDR_LEN);
@@ -331,6 +331,14 @@ bool MeshDevice::hasRouteTo(ble_adv_addr_t* addr)
 
 uint32_t MeshDevice::getDistanceTo(ble_adv_addr_t* addr)
 {
+  // search one hop neighbors
+  for (MeshNeighbor* pNb : mSubscriptions)
+  {
+    if (pNb->mAdvAddr == *addr)
+      return mNodeWeight + pNb->getNodeWeight();
+  }
+
+  // search routing table
   for (route_entry_t& route : mRoutes)
   {
     if (route.destination == *addr)
@@ -385,54 +393,7 @@ void MeshDevice::radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool 
     }
   }
 
-  // process payload
-  switch (pMeshPacket->payload.str.adv_type)
-  {
-  case MESH_ADV_TYPE_BROADCAST:
-    if (pMeshPacket->payload.str.payload.data.broadcast.source != mMyAddr && !hasMessageID(pMeshPacket->payload.str.msgID))
-    {
-      LLdataRX(&pMeshPacket->payload.str.payload.data.unicast.source,
-        pMeshPacket->payload.str.payload.data.broadcast.payload,
-        pMeshPacket->getPayloadLength());
-      if (pMeshPacket->payload.str.payload.data.broadcast.ttl-- > 0)
-      {
-        transmitRepeat(pMeshPacket);
-      }
-    }
-    break;
-  case MESH_ADV_TYPE_UNICAST:
-    if (hasMessageID(pMeshPacket->payload.str.msgID))
-      break;
-
-    addRoute(&pMeshPacket->payload.str.payload.data.unicast.source, pMeshPacket->payload.str.payload.data.unicast.source_dist);
-
-    if (pMeshPacket->payload.str.payload.data.unicast.dest == mMyAddr)
-    {
-      LLdataRX(&pMeshPacket->payload.str.payload.data.unicast.source,
-        pMeshPacket->payload.str.payload.data.unicast.payload,
-        pMeshPacket->getPayloadLength());
-    }
-    else // not for me. Retransmit?
-    {
-      uint32_t dest_dist = getDistanceTo(&pMeshPacket->payload.str.payload.data.unicast.dest);
-      uint32_t source_dist = getDistanceTo(&pMeshPacket->payload.str.payload.data.unicast.source);
-
-      if (dest_dist < pMeshPacket->payload.str.payload.data.unicast.dest_dist) // moving towards known target
-      {
-        pMeshPacket->payload.str.payload.data.unicast.source_dist += mNodeWeight;
-        pMeshPacket->payload.str.payload.data.unicast.dest_dist = dest_dist;
-        transmitRepeat(pMeshPacket);
-      }
-      else if (pMeshPacket->payload.str.payload.data.unicast.source_dist < source_dist && 
-        pMeshPacket->payload.str.payload.data.unicast.dest_dist == MESH_UNKNOWN_DIST) // moving away from a source that doesn't know the target
-      {
-        pMeshPacket->payload.str.payload.data.unicast.source_dist += mNodeWeight;
-        pMeshPacket->payload.str.payload.data.unicast.dest_dist = dest_dist;
-        transmitRepeat(pMeshPacket);
-      }
-    }
-    break;
-  }
+  processPacket(pMeshPacket);
 }
 
 route_entry_t* MeshDevice::getWeakestRoute(void)
@@ -503,7 +464,7 @@ void MeshDevice::beaconTimeout(uint32_t timestamp, void* context)
   if (mPacketQueue.size() > 0)
   {
     mesh_packet_t* pPacket = mPacketQueue.front();
-    mRadio->setPacket((uint8_t*)pPacket, pPacket->header.length + MESH_PACKET_OVERHEAD_LENGTH);
+    mRadio->setPacket((uint8_t*)pPacket, pPacket->header.length + MESH_PACKET_OVERHEAD);
     mPacketQueue.pop();
   }
   else
@@ -520,7 +481,7 @@ void MeshDevice::beaconTimeout(uint32_t timestamp, void* context)
     mDefaultPacket.payload.str.payload.default.nbCount = mSubscriptions.size();
     mDefaultPacket.payload.str.payload.default.nodeWeight = mNodeWeight;
     mDefaultPacket.payload.str.payload.default.offsetFromCH = mCHBeaconOffset;
-    mRadio->setPacket((uint8_t*)&mDefaultPacket, mDefaultPacket.header.length + MESH_PACKET_OVERHEAD_LENGTH);
+    mRadio->setPacket((uint8_t*)&mDefaultPacket, mDefaultPacket.header.length + MESH_PACKET_OVERHEAD);
   }
   mRadio->transmit();
 }
@@ -546,4 +507,77 @@ void MeshDevice::electClusterHead(void)
     return;
   }
   setClusterHead(pCH);
+}
+
+void MeshDevice::processPacket(mesh_packet_t* pMeshPacket)
+{
+  if (hasMessageID(pMeshPacket->payload.str.msgID))
+    return;
+
+  switch (pMeshPacket->payload.str.adv_type)
+  {
+  case MESH_ADV_TYPE_BROADCAST:
+    if (pMeshPacket->payload.str.payload.data.broadcast.source != mMyAddr)
+    {
+      LLdataRX(&pMeshPacket->payload.str.payload.data.unicast.source,
+        pMeshPacket->payload.str.payload.data.broadcast.payload,
+        pMeshPacket->getPayloadLength());
+      if (pMeshPacket->payload.str.payload.data.broadcast.ttl-- > 0)
+      {
+        transmitRepeat(pMeshPacket);
+      }
+    }
+    break;
+  case MESH_ADV_TYPE_UNICAST:
+
+    if (pMeshPacket->payload.str.payload.data.unicast.source_dist != MESH_UNKNOWN_DIST) 
+      addRoute(&pMeshPacket->payload.str.payload.data.unicast.source, pMeshPacket->payload.str.payload.data.unicast.source_dist);
+
+    if (pMeshPacket->payload.str.payload.data.unicast.dest == mMyAddr)
+    {
+      LLdataRX(&pMeshPacket->payload.str.payload.data.unicast.source,
+        pMeshPacket->payload.str.payload.data.unicast.payload,
+        pMeshPacket->getPayloadLength());
+    }
+    else // not for me. Retransmit?
+    {
+      uint32_t dest_dist = getDistanceTo(&pMeshPacket->payload.str.payload.data.unicast.dest);
+      uint32_t source_dist = getDistanceTo(&pMeshPacket->payload.str.payload.data.unicast.source);
+
+      if (dest_dist < pMeshPacket->payload.str.payload.data.unicast.dest_dist) // moving towards known target
+      {
+        pMeshPacket->payload.str.payload.data.unicast.source_dist += mNodeWeight;
+        pMeshPacket->payload.str.payload.data.unicast.dest_dist = dest_dist;
+        transmitRepeat(pMeshPacket);
+      }
+      else if (pMeshPacket->payload.str.payload.data.unicast.source_dist < source_dist &&
+        pMeshPacket->payload.str.payload.data.unicast.dest_dist == MESH_UNKNOWN_DIST) // moving away from a source that doesn't know the target
+      {
+        pMeshPacket->payload.str.payload.data.unicast.source_dist += mNodeWeight;
+        pMeshPacket->payload.str.payload.data.unicast.dest_dist = dest_dist;
+        transmitRepeat(pMeshPacket);
+      }
+    }
+    break;
+  case MESH_ADV_TYPE_DIST_REQ:
+    uint32_t distance = getDistanceTo(&pMeshPacket->payload.str.payload.distReq.dest);
+
+    if (distance != MESH_UNKNOWN_DIST)
+    {
+      mesh_packet_t* pRsp = new mesh_packet_t();
+      pRsp->access_addr = MESH_ACCESS_ADDR;
+      pRsp->header.length = MESH_PACKET_OVERHEAD + MESH_PACKET_OVERHEAD_NBNOT;
+      pRsp->header.type = BLE_PACKET_TYPE_ADV_IND;
+      pRsp->payload.str.adv_len = MESH_PACKET_OVERHEAD_NBNOT;
+      pRsp->payload.str.adv_type = MESH_ADV_TYPE_NEIGHBOR_NOTIFICATION;
+      memcpy(pRsp->adv_addr.arr, mMyAddr.arr, BLE_ADV_ADDR_LEN);
+      memcpy(pRsp->payload.str.payload.neighborNotification.neighborAddr.arr, pNb->mAdvAddr.arr, BLE_ADV_ADDR_LEN);
+      memcpy(pRsp->payload.str.payload.neighborNotification.neighborsCH.arr, pNb->mClusterHead.arr, BLE_ADV_ADDR_LEN);
+      pRsp->payload.str.payload.neighborNotification.nextExpectedBeacon = pNb->getNextBeaconTime(mTimer->getTimestamp());
+      pRsp->payload.str.payload.neighborNotification.neighborWeight = pNb->mNodeWeight;
+    }
+    break;
+  }
+
+  mMsgIDcache.registerID(pMeshPacket->payload.str.msgID);
 }

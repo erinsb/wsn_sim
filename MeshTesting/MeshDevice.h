@@ -20,11 +20,13 @@
 #define MESH_MESSAGE_ID_CACHE_SIZE  (16)
 #define MESH_CH_SWITCH_THRESHOLD    (20)        // required difference in ch weight before we change ch
 
-#define MESH_PACKET_OVERHEAD_LENGTH           (sizeof(uint32_t) + sizeof(ble_packet_header_t) + BLE_ADV_ADDR_LEN + sizeof(uint8_t) + sizeof(mesh_adv_type_t) + sizeof(msgID_t))
-#define MESH_PACKET_UNICAST_OVERHEAD_LENGTH   (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint32_t))
-#define MESH_PACKET_BROADCAST_OVERHEAD_LENGTH (BLE_ADV_ADDR_LEN + sizeof(uint16_t))
-#define MESH_PACKET_NBNOT_OVERHEAD_LENGTH     (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint8_t))
-#define MESH_PACKET_DEFAULT_OVERHEAD_LENGTH   (BLE_ADV_ADDR_LEN + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t))
+#define MESH_PACKET_OVERHEAD           (sizeof(uint32_t) + sizeof(ble_packet_header_t) + BLE_ADV_ADDR_LEN + sizeof(uint8_t) + sizeof(mesh_adv_type_t) + sizeof(msgID_t))
+#define MESH_PACKET_OVERHEAD_UNICAST   (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint32_t))
+#define MESH_PACKET_OVERHEAD_BROADCAST (BLE_ADV_ADDR_LEN + sizeof(uint16_t))
+#define MESH_PACKET_OVERHEAD_NBNOT     (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint8_t))
+#define MESH_PACKET_OVERHEAD_DEFAULT   (BLE_ADV_ADDR_LEN + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t))
+#define MESH_PACKET_OVERHEAD_DIST_REQ  (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint16_t))
+#define MESH_PACKET_OVERHEAD_DIST_RSP  (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint32_t))
 
 class MeshDevice;
 
@@ -104,13 +106,13 @@ typedef struct
             ble_adv_addr_t dest;      // multihop destination
             uint32_t source_dist;     // distance from source
             uint32_t dest_dist;       // distance to destination
-            uint8_t payload[248 - MESH_PACKET_UNICAST_OVERHEAD_LENGTH];
+            uint8_t payload[248 - MESH_PACKET_OVERHEAD_UNICAST];
           } unicast;
           struct
           {
             ble_adv_addr_t source;    // message originator
             uint16_t ttl;             // remaining hops before retransmits stop
-            uint8_t payload[248 - MESH_PACKET_BROADCAST_OVERHEAD_LENGTH];
+            uint8_t payload[248 - MESH_PACKET_OVERHEAD_BROADCAST];
           } broadcast;
         }data;
       } payload;
@@ -234,6 +236,7 @@ private:
   void beaconTimeout(uint32_t timestamp, void* context);
   void electClusterHead(void);
   void subscribe(MeshNeighbor* pNb);
+  void processPacket(mesh_packet_t* pMeshPacket);
 };
 
   
