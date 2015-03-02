@@ -9,15 +9,3 @@ bool operator !=(ble_adv_addr_t const& left, ble_adv_addr_t const& right)
 {
   return !(left == right);
 }
-
-#if 0
-BlePacket::BlePacket()
-{
-}
-
-
-BlePacket::~BlePacket()
-{
-}
-
-#endif
