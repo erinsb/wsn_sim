@@ -4,10 +4,12 @@
 
 #define PPM   (1.0 / 1000000.0)
 
+typedef uint32_t timer_t;
+
 class Timeout
 {
 public:
-  Timeout(uint32_t timestamp, const std::function<void(uint32_t, void*)> callback, void* context) : mTimestamp(timestamp), mCallback(callback), mContext(context){}
+  Timeout(uint32_t timestamp, timer_t id, const std::function<void(uint32_t, void*)> callback, void* context) : mTimestamp(timestamp), mCallback(callback), mContext(context){}
 
   void fire(void) 
   { 
@@ -17,6 +19,7 @@ public:
   const std::function<void(uint32_t, void*)> mCallback;
   uint32_t mTimestamp;
   bool invalid = false;
+  timer_t mTimerID;
   void* mContext;
 };
 
@@ -29,9 +32,11 @@ public:
   void setDriftFactor(double driftFactor) { mDriftFactor = driftFactor; }
   void resetDrift(void);
 
-  void orderAt(uint32_t timestamp, const std::function<void(uint32_t, void*)> callback, void* context = NULL);
-  
-  void orderRelative(uint32_t deltaTime, const std::function<void(uint32_t, void*)> callback, void* context = NULL);
+  timer_t orderAt(uint32_t timestamp, const std::function<void(uint32_t, void*)> callback, void* context = NULL);
+  timer_t orderRelative(uint32_t deltaTime, const std::function<void(uint32_t, void*)> callback, void* context = NULL);
+  void reschedule(timer_t timer, uint32_t timestamp);
+  void abort(timer_t timer);
+  uint32_t getExpiration(timer_t timer);
 
   uint32_t getTimestamp(void);
 
@@ -44,7 +49,9 @@ private:
   double mDriftFactor;
   std::vector<Timeout*> mTimeouts;
   bool mIteratorInvalidated = false;
+  timer_t mNextTimerIndex;
 
   uint32_t getTimerTime(uint32_t globalTime);
+  Timeout* getTimeoutStruct(timer_t timer);
 };
 
