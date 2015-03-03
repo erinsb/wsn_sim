@@ -372,7 +372,7 @@ void MeshDevice::radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool 
   }
   else
   {
-    pNb->receivedBeacon(packet->mStartTime, pMeshPacket);
+    pNb->receivedBeacon(packet->mStartTime, pMeshPacket); // let neighbor structure update itself
   }  
   if (pNb->isClusterHead())
   {
