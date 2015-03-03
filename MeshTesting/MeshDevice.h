@@ -73,6 +73,10 @@ typedef struct
         } default;
         struct
         {
+          ble_adv_addr_t neighbor;
+        } neighborRequest;
+        struct
+        {
           ble_adv_addr_t neighborsCH; // address of neighbor's clusterhead
           ble_adv_addr_t neighborAddr;// address of neighbor
           uint32_t nextExpectedBeacon;// timeoffset from this msg to the next expected nb beacon
