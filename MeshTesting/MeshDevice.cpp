@@ -574,13 +574,50 @@ void MeshDevice::processPacket(mesh_packet_t* pMeshPacket)
       pRsp->header.type = BLE_PACKET_TYPE_ADV_IND;
       pRsp->payload.str.adv_len = MESH_PACKET_OVERHEAD_NBNOT;
       pRsp->payload.str.adv_type = MESH_ADV_TYPE_NEIGHBOR_NOTIFICATION;
+      pRsp->payload.str.msgID = pMeshPacket->payload.str.msgID + 1;
       memcpy(pRsp->adv_addr.arr, mMyAddr.arr, BLE_ADV_ADDR_LEN);
-      memcpy(pRsp->payload.str.payload.neighborNotification.neighborAddr.arr, pNb->mAdvAddr.arr, BLE_ADV_ADDR_LEN);
-      memcpy(pRsp->payload.str.payload.neighborNotification.neighborsCH.arr, pNb->mClusterHead.arr, BLE_ADV_ADDR_LEN);
-      pRsp->payload.str.payload.neighborNotification.nextExpectedBeacon = pNb->getNextBeaconTime(mTimer->getTimestamp());
-      pRsp->payload.str.payload.neighborNotification.neighborWeight = pNb->mNodeWeight;
+      memcpy(pRsp->payload.str.payload.distRsp.dest.arr, pMeshPacket->payload.str.payload.distReq.dest.arr, BLE_ADV_ADDR_LEN);
+      pRsp->payload.str.payload.distRsp.dest_dist = distance + mNodeWeight;
+      memcpy(pRsp->payload.str.payload.distRsp.source.arr, pMeshPacket->payload.str.payload.distReq.source.arr, BLE_ADV_ADDR_LEN);
+      pRsp->payload.str.payload.distRsp.source_dist = pMeshPacket->payload.str.payload.distReq.source_dist + mNodeWeight;
     }
+    else // just relay, don't answer
+    {
+      if (pMeshPacket->payload.str.payload.distReq.ttl-- > 0)
+      {
+        pMeshPacket->payload.str.payload.distReq.source_dist += mNodeWeight;
+        transmitRepeat(pMeshPacket);
+      }
+    }
+    break; 
+  }
+
+  case MESH_ADV_TYPE_DIST_RSP:
+  {
+    uint32_t distance = getDistanceTo(&pMeshPacket->payload.str.payload.distReq.dest);
+
+    if (pMeshPacket->payload.str.payload.distRsp.source_dist > distance) // we're further from the source than the one we receive from, don't repeat
+      break;
+
+    if (pMeshPacket->payload.str.payload.distRsp.dest_dist != MESH_UNKNOWN_DIST)
+      addRoute(&pMeshPacket->payload.str.payload.distRsp.dest, pMeshPacket->payload.str.payload.distRsp.dest_dist);
+
+    pMeshPacket->payload.str.payload.distRsp.source_dist = distance;
+
+    transmitRepeat(pMeshPacket);
+
     break;
+  }
+
+  case MESH_ADV_TYPE_ADDRESS_ADVERTISEMENT:
+    addRoute(&pMeshPacket->payload.str.payload.addressAdvertisement.source, pMeshPacket->payload.str.payload.addressAdvertisement.source_dist);
+
+    if (pMeshPacket->payload.str.payload.addressAdvertisement.ttl-- > 0) // relay
+      transmitRepeat(pMeshPacket);
+    break;
+
+  case MESH_ADV_TYPE_NEIGHBOR_REQUEST:
+    for (neighbor)
   }
 
   mMsgIDcache.registerID(pMeshPacket->payload.str.msgID);
