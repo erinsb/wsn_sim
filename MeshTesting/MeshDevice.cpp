@@ -560,9 +560,13 @@ void MeshDevice::processPacket(mesh_packet_t* pMeshPacket)
     }
     break;
   case MESH_ADV_TYPE_DIST_REQ:
+  {
     uint32_t distance = getDistanceTo(&pMeshPacket->payload.str.payload.distReq.dest);
 
-    if (distance != MESH_UNKNOWN_DIST)
+    if (pMeshPacket->payload.str.payload.distReq.source_dist != MESH_UNKNOWN_DIST)
+      addRoute(&pMeshPacket->payload.str.payload.distReq.source, pMeshPacket->payload.str.payload.distReq.source_dist);
+
+    if (distance != MESH_UNKNOWN_DIST) // we have a path, respond to request
     {
       mesh_packet_t* pRsp = new mesh_packet_t();
       pRsp->access_addr = MESH_ACCESS_ADDR;
