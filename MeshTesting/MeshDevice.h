@@ -94,7 +94,7 @@ typedef struct
           ble_adv_addr_t source;      // source of request
           ble_adv_addr_t dest;        // destination to request distance to
           uint32_t source_dist;       // highest distance allowed for retransmit
-          uint32_t dest_dist;         // aggregate distance from destination
+          uint32_t dest_dist;         // aggregate distance from destination (the total source->dest distance)
         } distRsp;
         struct
         {
