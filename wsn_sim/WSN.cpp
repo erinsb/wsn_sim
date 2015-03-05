@@ -41,17 +41,27 @@ void WSN::endTransmit(packetHandle_t packetHandle)
   RadioPacket* pPacket = getRadioPacket(packetHandle);
   if (pPacket == NULL)
   {
-    LOG_ERROR << "Someone ended an unregistered packet transmit.";
+    _ERROR("Someone ended an unregistered packet transmit.");
     return;
   }
 
   pPacket->mEndTime = getEnvironment()->getTimestamp();
 
-  // make copy of receivers, as mReceives may change during iteration
+  // make copy of receivers, as mReceivers may change during iteration
   auto receivers = getReceiversListening(pPacket);
 
+  // store it inbetween, since we delete elements as we go
+  std::vector<Radio*> radios;
+  std::vector<bool> corrupted;
   for (PacketReceiver* pRecv : receivers)
   {
+    radios.push_back(pRecv->mRadio);
+    corrupted.push_back(pRecv->packetIsCorrupted(pPacket));
+  }
+
+  for (uint8_t i = 0; i < radios.size(); ++i)
+  {
+    Radio* pRadio = radios[i];
     uint8_t sigStrength;
     if (pPacket->getMaxDistance() == 0.0)
     {
@@ -61,11 +71,11 @@ void WSN::endTransmit(packetHandle_t packetHandle)
     {
       sigStrength = uint8_t(pPacket->getSender()->getSignalStrength() *
         (1 -
-        pRecv->mRadio->getDevice()->getDistanceTo(*pPacket->getSender()->getDevice()) /
+        pRadio->getDevice()->getDistanceTo(*pPacket->getSender()->getDevice()) /
         pPacket->getMaxDistance()));
     }
 
-    pRecv->mRadio->receivePacket(pPacket, sigStrength, pRecv->packetIsCorrupted(pPacket)); // will cause radio to stop RX
+   pRadio->receivePacket(pPacket, sigStrength, corrupted[i]); // will cause radio to stop RX
   }
 }
 
