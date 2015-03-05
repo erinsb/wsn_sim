@@ -20,7 +20,8 @@ Radio::Radio(Device* device, uint8_t sigStrength, uint32_t turnaroundTime_us, ui
   mTurnaroundTime_us(turnaroundTime_us), 
   mBitrate(bitrate),
   mState(RADIO_STATE_IDLE),
-  mShort(SHORT_DISABLED)
+  mShort(SHORT_DISABLED), 
+  mNextActionTime(100000)
 {
   // can't be faster than hardware allows
   mTifs_us = (tifs_us > turnaroundTime_us) ? tifs_us : turnaroundTime_us;
@@ -35,11 +36,12 @@ void Radio::transmit(void)
   if (mState == RADIO_STATE_IDLE)
   {
     setState(RADIO_STATE_RAMPUP_TX);
-    getEnvironment()->registerExecution(this, getEnvironment()->getTimestamp() + mTurnaroundTime_us);
+    wait(mTurnaroundTime_us);
+    _LOG("%s Radio TX", mDevice->mName.c_str());
   }
   else
   {
-    LOG_ERROR << "Radio TX ordered outside IDLE state (state: " << mState << ")";
+    _ERROR("Radio TX ordered outside IDLE state (state: %d)", mState);
   }
 }
 
@@ -48,11 +50,12 @@ void Radio::receive(void)
   if (mState == RADIO_STATE_IDLE)
   {
     setState(RADIO_STATE_RAMPUP_RX);
-    getEnvironment()->registerExecution(this, getEnvironment()->getTimestamp() + mTurnaroundTime_us);
+    wait(mTurnaroundTime_us);
+    _LOG("%s Radio RX", mDevice->mName.c_str());
   }
   else
   {
-    LOG_ERROR << "Radio RX ordered outside IDLE state (state: " << mState << ")";
+    _ERROR("Radio TX ordered outside IDLE state (state: %d)", mState);
   }
 }
 
@@ -67,6 +70,7 @@ void Radio::disable(void)
     mWSN->abortTransmit(mTxPacketHandle);
   }
   setState(RADIO_STATE_IDLE);
+  mNextActionTime = 0;
 }
 
 void Radio::setPacket(uint8_t* packet, uint8_t length)
@@ -95,12 +99,16 @@ void Radio::receivePacket(RadioPacket* pPacket, uint8_t rx_strength, bool corrup
   shortToNextState();
   RadioPacket localPacket(*pPacket);
   mDevice->radioCallbackRx(&localPacket, rx_strength, corrupted);
-
-  //LOG_RX << pPacket;
 }
 
 void Radio::step(uint32_t timestamp)
 {
+  if (timestamp != mNextActionTime)
+  {
+    _WARN("Wrongful radio step");
+  }
+   
+
   switch (mState)
   {
   case RADIO_STATE_IDLE:
@@ -110,29 +118,33 @@ void Radio::step(uint32_t timestamp)
   case RADIO_STATE_RAMPUP_RX:
     mWSN->addReceiver(this);
     setState(RADIO_STATE_RX);
+    _LOG("%s RU RX done", mDevice->mName.c_str());
     break;
 
-  case RADIO_STATE_RAMPUP_TX:
-    mTxPacketHandle = mWSN->startTransmit(mCurrentPacket);
-    getEnvironment()->registerExecution(this, timestamp + getTxTime(mCurrentPacket.getLength()));
+  case RADIO_STATE_RAMPUP_TX:  
     setState(RADIO_STATE_TX);
+    mTxPacketHandle = mWSN->startTransmit(mCurrentPacket);
+    wait(getTxTime(mCurrentPacket.getLength()));
+    _LOG("%s RU TX done", mDevice->mName.c_str());
     break;
 
   case RADIO_STATE_RX:
     // is this possible?
-    mWSN->removeReceiver(this);
-    shortToNextState();
-    mDevice->radioCallbackRx(NULL, 0, true);
+    //mWSN->removeReceiver(this);
+    //shortToNextState();
+    //mDevice->radioCallbackRx(NULL, 0, true);
+    _LOG("%s RX done", mDevice->mName.c_str());
     break;
 
   case RADIO_STATE_TX:
     mWSN->endTransmit(mTxPacketHandle);
     shortToNextState();
     mDevice->radioCallbackTx(&mCurrentPacket);
+    _LOG("%s TX done", mDevice->mName.c_str());
     break;
 
   default:
-    LOG_ERROR << "Radio: illegal state";
+    _ERROR("Radio: illegal state");
   }
 }
 
@@ -144,16 +156,17 @@ void Radio::shortToNextState(void)
   }
   else
   {
-    getEnvironment()->registerExecution(this, getEnvironment()->getTimestamp() + mTifs_us);
-
-    if (mShort == SHORT_TO_RX)
+    switch (mShort)
     {
+    case SHORT_TO_RX:
       setState(RADIO_STATE_RAMPUP_RX);
-    }
-    else
-    {
+      break;
+
+    case SHORT_TO_TX:
       setState(RADIO_STATE_RAMPUP_TX);
+      break;
     }
+    wait(mTifs_us);
   }
 }
 
@@ -163,4 +176,10 @@ void Radio::setState(state_t newState)
   mDevice->removePowerDrain(powerProfile[mState]);  
   mDevice->registerPowerDrain(powerProfile[newState]);
   mState = newState;
+}
+
+void Radio::wait(uint32_t time)
+{
+  mNextActionTime = getEnvironment()->getTimestamp() + time;
+  getEnvironment()->registerExecution(this, mNextActionTime);
 }

@@ -87,10 +87,12 @@ private:
   WSN* mWSN;
   uint32_t mTurnaroundTime_us;
   uint32_t mBitrate;
+  uint32_t mNextActionTime;
   uint8_t mTifs_us;
   uint8_t mSigStrength;
 
   static const double powerProfile[7];
+
   
   void receivePacket(
     RadioPacket* pPacket, 
@@ -99,5 +101,6 @@ private:
   void shortToNextState(void);
 
   void setState(state_t newState);
+  void wait(uint32_t time);
 };
 
