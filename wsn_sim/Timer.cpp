@@ -79,6 +79,13 @@ uint32_t Timer::getTimestamp(void)
   return getTimerTime(getEnvironment()->getTimestamp());
 }
 
+void Timer::setContext(timer_t timer, void* context)
+{
+  Timeout* pTo = getTimeoutStruct(timer);
+  if (pTo != NULL)
+    pTo->mContext = context;
+}
+
 
 
 void Timer::step(uint32_t timestamp)
