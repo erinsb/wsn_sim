@@ -55,13 +55,13 @@ namespace wsn_sim_tests
       mSimEnv.run(RADIO_DEFAULT_TURNAROUND - 2);
       Assert::AreEqual<int>(pRadio->getState(), Radio::RADIO_STATE_RAMPUP_TX, L"Radio failed to stay in RU for the entire RU");
 
-      mSimEnv.run(4);
+      mSimEnv.run(mSimEnv.getTimestamp() + 4);
       Assert::AreEqual<int>(pRadio->getState(), Radio::RADIO_STATE_TX, L"Radio failed to enter TX");
       
-      mSimEnv.run(pRadio->getTxTime(5));
+      mSimEnv.run(mSimEnv.getTimestamp() + pRadio->getTxTime(5));
       Assert::AreEqual<int>(pRadio->getState(), Radio::RADIO_STATE_IDLE, L"Radio failed to go back to idle");
 
-      mSimEnv.run(1000);
+      mSimEnv.run(mSimEnv.getTimestamp() + 1000);
       Assert::AreEqual<int>(pRadio->getState(), Radio::RADIO_STATE_IDLE, L"Radio failed stay in idle");
 		}
 
@@ -74,43 +74,81 @@ namespace wsn_sim_tests
       mSimEnv.run(RADIO_DEFAULT_TURNAROUND + 1);
       Assert::AreEqual<int>(pRadio->getState(), Radio::RADIO_STATE_TX, L"Failed to transmit first");
 
-      mSimEnv.run(pRadio->getTxTime(5) + 1);
+      mSimEnv.run(mSimEnv.getTimestamp() + pRadio->getTxTime(5) + 1);
       Assert::AreEqual<int>(pRadio->getState(), Radio::RADIO_STATE_RAMPUP_TX, L"Failed to do short");
       
       pRadio->shortDisable();
 
-      while (pRadio->getState() == Radio::RADIO_STATE_RAMPUP_TX)
-      {
-        mSimEnv.run(1);
-      }
+      runWhileRadioInState(Radio::RADIO_STATE_RAMPUP_TX);
+
       Assert::AreEqual<int>(pRadio->getState(), Radio::RADIO_STATE_TX, L"Failed to enter TX");
 
-      while (pRadio->getState() == Radio::RADIO_STATE_TX)
-      {
-        mSimEnv.run(1);
-      }
+      runWhileRadioInState(Radio::RADIO_STATE_TX);
+
       Assert::AreEqual<int>(pRadio->getState(), Radio::RADIO_STATE_IDLE, L"Failed to return to idle");
+    }
+
+    TEST_METHOD(SMTestExitTXRUAttempt)
+    {
+      pRadio->setPacket(dummyData, 5);
+      pRadio->shortToRx();
+      pRadio->transmit();
+      
+      runUntilRadioInState(Radio::RADIO_STATE_RAMPUP_RX);
+
+      pRadio->shortToTx();
+
+      runUntilRadioInState(Radio::RADIO_STATE_RAMPUP_RX);
+
+      pRadio->disable();
+      pRadio->shortDisable();
+
+      runUntilRadioInState(Radio::RADIO_STATE_IDLE);
+
+      pRadio->transmit();
+      runUntilRadioInState(Radio::RADIO_STATE_IDLE);
+      pRadio->receive();
+      runUntilRadioInState(Radio::RADIO_STATE_RX);
+      pRadio->disable();
     }
 
     TEST_METHOD(NotifyingWSNTest)
     {
       pRadio->setPacket(dummyData, 5);
       pRadio->transmit();
-      while (pRadio->getState() != Radio::RADIO_STATE_TX)
-      {
-        mSimEnv.run(1);
-      }
+
+      runWhileRadioInState(Radio::RADIO_STATE_RAMPUP_TX);
       
       auto packetsOnAir = mWSN.getPacketsInFlight();
       Assert::AreEqual<int>(packetsOnAir.size(), 1, L"Failed to post packet to WSN");
-      while (pRadio->getState() == Radio::RADIO_STATE_TX)
-      {
-        mSimEnv.run(1);
-      }
+
+      runWhileRadioInState(Radio::RADIO_STATE_TX);
 
       packetsOnAir = mWSN.getPacketsInFlight();
       Assert::AreEqual<int>(packetsOnAir.size(), 0, L"Failed to notify end of transmit to WSN");
       
+    }
+  private:
+    void runWhileRadioInState(Radio::state_t state)
+    {
+      uint32_t i = 10000;
+      while (pRadio->getState() == state && --i)
+      {
+        mSimEnv.run(mSimEnv.getTimestamp() + 1);
+      }
+      std::string str = "Radio failed to leave state " + std::to_string(state);
+      Assert::IsFalse(i == 0, std::wstring(str.begin(), str.end()).c_str());
+    }
+
+    void runUntilRadioInState(Radio::state_t state)
+    {
+      uint32_t i = 10000; 
+      while (pRadio->getState() != state && --i)
+      {
+        mSimEnv.run(mSimEnv.getTimestamp() + 1);
+      }
+      std::string str = "Radio failed to enter state " + std::to_string(state);
+      Assert::IsFalse(i == 0, std::wstring(str.begin(), str.end()).c_str());
     }
 
 	};
