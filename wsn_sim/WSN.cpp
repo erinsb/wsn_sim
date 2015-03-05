@@ -105,7 +105,10 @@ void WSN::addDevice(Device* device)
 
 RadioPacket* WSN::getRadioPacket(packetHandle_t handle) const 
 {
-  return mPackets.at(handle - mPacketsDeletedCount);
+  if (mPackets.size() > handle - mPacketsDeletedCount)
+    return mPackets.at(handle - mPacketsDeletedCount);
+  else
+    return NULL;
 }
 
 std::vector<RadioPacket*> WSN::getPacketsInFlight(void) const
