@@ -19,22 +19,27 @@ typedef enum
 
 typedef struct
 {
-  ble_packet_type_t type : 4;
+  uint8_t type : 4;
   uint8_t _rfu1 : 2;
   uint8_t addr_type : 2;
   uint8_t length;
 } ble_packet_header_t;
 
-typedef union
+typedef union ble_adv_addr_t
 {
-  uint64_t raw : 48;
+  //uint64_t raw : 48;
   uint8_t arr[6];
+  bool isNull(void);
+  void set(union ble_adv_addr_t& adv_addr) { memcpy(arr, adv_addr.arr, BLE_ADV_ADDR_LEN); }
+  void clear(void) { memset(arr, 0, BLE_ADV_ADDR_LEN); }
+  std::string toString(void);
 } ble_adv_addr_t;
+#pragma pack(pop)
 
 bool operator ==(ble_adv_addr_t const& left, ble_adv_addr_t const& right);
 bool operator !=(ble_adv_addr_t const& left, ble_adv_addr_t const& right);
 
-
+#pragma pack(push, 1)
 typedef struct
 {
   uint32_t access_addr;
@@ -78,10 +83,6 @@ typedef struct
   {
     uint8_t temp[] = { a0, a1, a2, a3, a4, a5 };
     memcpy(adv_addr.arr, temp, 6); 
-  }
-  void setAdvAddr(uint64_t addr) 
-  { 
-    adv_addr.raw = addr & 0xFFFFFFFFFFFF0000;
   }
 }ble_adv_packet_t;
 #pragma pack(pop)
