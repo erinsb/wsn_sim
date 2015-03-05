@@ -25,8 +25,8 @@ namespace wsn_sim_tests
       env.attachRunnable(&fast_timer);
       env.run(timestamp);
       
-      Assert::AreEqual(correct_timer.getTimestamp(), timestamp);
-      Assert::AreEqual(fast_timer.getTimestamp(), timestamp * 2);
+      Assert::AreEqual(correct_timer.getTimestamp(), timestamp, L"no-drift timer");
+      Assert::AreEqual(fast_timer.getTimestamp(), timestamp * 2, L"Fast timer");
 		}
 
 	};

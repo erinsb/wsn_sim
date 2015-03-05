@@ -40,7 +40,7 @@ namespace wsn_sim_tests
       uint32_t steps = 0;
       while (mRxInProgress || mTxInProgress)
       {
-        getEnvironment()->run(1);
+        getEnvironment()->run(getEnvironment()->getTimestamp() + 1);
         Assert::IsFalse(steps++ > 100000, L"TX never ended");
       }
     }
