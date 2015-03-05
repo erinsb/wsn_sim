@@ -3,13 +3,15 @@
 #include <functional>
 
 #define PPM   (1.0 / 1000000.0)
+#define MEMBER_TIMEOUT(func)   std::bind(&func, this, std::placeholders::_1, std::placeholders::_2)
+#define TIMER_DRIFT_MARGIN  (2)
 
 typedef uint32_t timer_t;
 
 class Timeout
 {
 public:
-  Timeout(uint32_t timestamp, timer_t id, const std::function<void(uint32_t, void*)> callback, void* context) : mTimestamp(timestamp), mCallback(callback), mContext(context){}
+  Timeout(uint32_t timestamp, timer_t id, const std::function<void(uint32_t, void*)> callback, void* context) : mTimestamp(timestamp), mCallback(callback), mContext(context), mInterval(0), mTimerID(id) {}
 
   void fire(void) 
   { 
