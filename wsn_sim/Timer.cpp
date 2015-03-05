@@ -18,7 +18,7 @@ void Timer::resetDrift(void)
 
 timer_t Timer::orderAt(uint32_t timestamp, const std::function<void(uint32_t, void*)> callback, void* context)
 {
-  mTimeouts.push_back(new Timeout(timestamp, mNextTimerIndex, callback, context));
+  mTimeouts.push_back(new Timeout(getGlobalTimeAtLocalTime(timestamp), mNextTimerIndex, callback, context));
   getEnvironment()->registerExecution(this, getGlobalTimeAtLocalTime(timestamp));
   mIteratorInvalidated = true;
 

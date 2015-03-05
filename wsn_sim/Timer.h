@@ -58,7 +58,6 @@ private:
   bool mIteratorInvalidated = false;
   timer_t mNextTimerIndex;
 
-  uint32_t getTimerTime(uint32_t globalTime);
   Timeout* getTimeoutStruct(timer_t timer);
 };
 
