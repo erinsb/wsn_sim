@@ -8,57 +8,57 @@
 static void runGLUT(PowerPlotter* pPlotter);
 static PowerPlotter* g_pPlotter;
 
-void display(void)
+static void display(void)
 {
   g_pPlotter->display();
 }
 
-void reshape(int w, int h)
+static void reshape(int w, int h)
 {
   g_pPlotter->reshape(w, h);
 }
 
-void mouse(int button, int state, int x, int y)
+static void mouse(int button, int state, int x, int y)
 {
   g_pPlotter->mouse(button, state, x, y);
 }
 
-void motion(int x, int y)
+static void motion(int x, int y)
 {
   g_pPlotter->motion(x, y);
 }
 
-void passivemotion(int x, int y)
+static void passivemotion(int x, int y)
 {
   g_pPlotter->passivemotion(x, y);
 }
 
-void specialKeys(int key, int x, int y)
+static void specialKeys(int key, int x, int y)
 {
   g_pPlotter->specialKeys(key, x, y);
 }
 
-void keyboard(unsigned char key, int x, int y)
+static void keyboard(unsigned char key, int x, int y)
 {
   if (key == 'g')
     g_pPlotter->toggleGrid();
   g_pPlotter->keyboard(key, x, y);
 }
 
-void idle(void)
+static void idle(void)
 { 
   glutPostRedisplay(); 
   Sleep(10); 
 }
 
 
-void runGLUT(PowerPlotter* pPlotter)
+static void runGLUT(PowerPlotter* pPlotter)
 {
   g_pPlotter = pPlotter;
   int argc = 1;
   char* argv[] = { "whatever" };
   glutInit(&argc, argv);
-  glutCreateWindow(100, 100, 1024, 800);
+  glutCreateWindow(800, 100, 1024, 800);
   glutDisplayFunc(display);
   glutReshapeFunc(reshape);
   glutIdleFunc(idle);
@@ -90,12 +90,36 @@ void PowerPlotter::specialKeys(int key, int x, int y)
     tempEndTime += movement_speed;
     break;
   case GLUT_KEY_PAGE_UP:
-    tempStartTime += delta;
-    tempEndTime += delta;
+    if (maxTime - tempEndTime < delta)
+    {
+      tempStartTime = maxTime - delta;
+      tempEndTime = maxTime;
+    }
+    else
+    {
+      tempStartTime += delta;
+      tempEndTime += delta;
+    }
     break;
   case GLUT_KEY_PAGE_DOWN:
-    tempStartTime -= delta;
-    tempEndTime -= delta;
+    if (tempStartTime < delta)
+    {
+      tempStartTime = 0;
+      tempEndTime = delta;
+    }
+    else
+    {
+      tempStartTime -= delta;
+      tempEndTime -= delta;
+    }
+    break;
+  case GLUT_KEY_HOME:
+    tempStartTime = 0;
+    tempEndTime = delta;
+    break;
+  case GLUT_KEY_END:
+    tempStartTime = maxTime - delta;
+    tempEndTime = maxTime;
     break;
   case GLUT_KEY_UP:
     if (tempStartTime < (uint32_t) movement_speed)
@@ -115,8 +139,11 @@ void PowerPlotter::specialKeys(int key, int x, int y)
     }
     break;
   case GLUT_KEY_DOWN:
-    tempStartTime += movement_speed;
-    tempEndTime -= movement_speed;
+    if (delta > 100)
+    {
+      tempStartTime += movement_speed;
+      tempEndTime -= movement_speed;
+    }
     break;
   }
   if (tempStartTime > tempEndTime || tempEndTime > maxTime)
@@ -149,6 +176,7 @@ void PowerPlotter::DISPLAY(void)
   for (uint32_t i = 0; i < mDevices.size(); ++i)
   {
     subplot(mDevices.size(), 1, i + 1);
+    this->title(mDevices[i]->mName);
     plotDevice(mDevices[i]);
   }
 }
@@ -158,12 +186,13 @@ void PowerPlotter::plotDevice(Device* pDev)
   auto evs = pDev->getPowerUsageEvents();
   mStartTime = max(0, int32_t(mStartTime));
   mEndTime = min(pDev->getEnvironment()->getTimestamp(), mEndTime);
-  std::vector<double> power, time;
+  dvec power;
+  dvec time;
 
   double currVal = 0.0;
   auto it = evs.begin();
 
-  while (it->timestamp < mStartTime && it != evs.end()) // find last point before start
+  while (it != evs.end() && it->timestamp <= mStartTime) // find last point before start
   {
     currVal = it->power_mA;
     it++;
@@ -193,5 +222,7 @@ void PowerPlotter::plotDevice(Device* pDev)
 
   grid(mGrid); //flakey
   axis(mStartTime, mEndTime, 0, 15);
-  plot(time, power);
+  if (time.size() > 1)
+    plot(time, power);
+
 }
