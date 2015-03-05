@@ -263,7 +263,7 @@ bool WSN::PacketReceiver::hasPacket(RadioPacket* pPacket)
   return false;
 }
 
-bool WSN::PacketReceiver::packetIsCorrupted(RadioPacket* pPacket)
+bool WSN::PacketReceiver::packetIsCorrupted(RadioPacket* pPacket) const
 {
   if (mPackets.size() == 0)
     return false;

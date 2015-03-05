@@ -54,7 +54,7 @@ private:
     void putPacket(RadioPacket* pPacket);
     bool hasPacket(RadioPacket* pPacket);
 
-    bool packetIsCorrupted(RadioPacket* pPacket);
+    bool packetIsCorrupted(RadioPacket* pPacket) const;
 
     Radio* mRadio;
     uint32_t mStartTime;
