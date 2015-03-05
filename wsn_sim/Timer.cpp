@@ -45,17 +45,22 @@ void Timer::reschedule(timer_t timer, uint32_t timestamp)
   if (pTo == NULL)
     return;
 
-  pTo->mTimestamp = timestamp;
+  pTo->mTimestamp = getGlobalTimeAtLocalTime(timestamp);
+  getEnvironment()->registerExecution(this, getGlobalTimeAtLocalTime(timestamp));
 }
 
 void Timer::abort(timer_t timer)
 {
-  for (auto it = mTimeouts.begin(); it != mTimeouts.end(); it++)
+  for (auto it = mTimeouts.begin(); it != mTimeouts.end();)
   {
     if ((*it)->mTimerID == timer)
     {
       delete (*it);
-      mTimeouts.erase(it);
+      it = mTimeouts.erase(it);
+    }
+    else
+    {
+      it++;
     }
   }
 }
