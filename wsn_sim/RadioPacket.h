@@ -19,7 +19,7 @@ public:
 
   double getMaxDistance(void) { return mSignalStrength * RADIO_SIGNAL_DECAY; }
 
-  bool collidesWith(RadioPacket* pOther);
+  bool collidesWith(RadioPacket* pOther) const;
 
   const uint8_t* getContents(void) const { return mData; }
   const uint32_t getLength(void) const { return mLength; }

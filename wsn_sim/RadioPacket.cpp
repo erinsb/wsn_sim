@@ -35,7 +35,7 @@ RadioPacket::~RadioPacket()
 }
 
 
-bool RadioPacket::collidesWith(RadioPacket* pOther)
+bool RadioPacket::collidesWith(RadioPacket* pOther) const
 {
   return (
       (pOther != NULL) &&
