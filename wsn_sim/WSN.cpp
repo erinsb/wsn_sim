@@ -84,7 +84,7 @@ void WSN::abortTransmit(packetHandle_t packetHandle)
   RadioPacket* pPacket = getRadioPacket(packetHandle);
   if (pPacket == NULL)
   {
-    LOG_ERROR << "Someone aborted an unregistered packet transmit.";
+    _ERROR("Someone aborted an unregistered packet transmit.");
     return;
   }
 
@@ -132,6 +132,10 @@ void WSN::addReceiver(Radio* radio)
     mReceiverListMut.lock();
     mReceivers.push_back(PacketReceiver(radio));
     mReceiverListMut.unlock();
+  }
+  else
+  {
+    _ERROR("Attempted to add a receiver twice");
   }
   mReceiverListChanged = true;
 }
@@ -304,6 +308,10 @@ std::vector<WSN::PacketReceiver*> WSN::getPacketReceiversInRange(RadioPacket* pP
       pPacket->getSender()->getDevice()->getDistanceTo(*receiver.mRadio->getDevice()) < pPacket->getMaxDistance())
     {
       resultVector.push_back(&receiver);
+    }
+    else
+    {
+      _ERROR("Receiver out of range");
     }
   }
   mReceiverListMut.unlock();
