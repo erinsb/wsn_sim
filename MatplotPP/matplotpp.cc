@@ -1443,16 +1443,23 @@ void MatPlot::line_config(){
     if (ca->zmax < z){ ca->zmax = z; }
   }
 }
-int MatPlot::line(dvec x, dvec y){
+int MatPlot::line(dvec& x, dvec& y){
   int h = line();
   if (cfr->Visible){
-    cl->XData = x;
-    cl->YData = y;
+    // copy elements by value
+    cl->XData.clear();
+    cl->YData.clear();
+    cl->XData.resize(x.size());
+    cl->YData.resize(y.size());
+    for (int i = 0; i < x.size(); ++i)
+      cl->XData[i] = x[i];
+    for (int i = 0; i < y.size(); ++i)
+      cl->YData[i] = y[i];
     line_config();
   }
   return h;
 }
-int MatPlot::line(dvec x, dvec y, dvec z){
+int MatPlot::line(dvec& x, dvec& y, dvec& z){
   int h = line();
   if (cfr->Visible){
     cl->XData = x;
@@ -1476,14 +1483,14 @@ void  MatPlot::vertex(double x, double y){
   }
 }
 /// plot, semilogx, semilogy, loglog
-int MatPlot::plot(dvec y){
+int MatPlot::plot(dvec& y){
   int n = y.size();
   dvec x;
   x.resize(n);
   for (int i = 0; i < n; ++i){ x[i] = 1.0*i / (n - 1); }
   return line(x, y);
 }
-int MatPlot::plot(dvec x, dvec y){
+int MatPlot::plot(dvec& x, dvec& y){
   return line(x, y);
 }
 int MatPlot::plot(valarray<double> x, valarray<double> y){

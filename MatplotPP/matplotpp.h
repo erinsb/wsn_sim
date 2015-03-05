@@ -17,9 +17,9 @@ Version:0.3.11
 #include "GL\glut.h"
 
 #ifndef IMPORT
-#define CLASS_DECLSPEC    __declspec(dllexport)
+#define CLASS_DECLSPEC    //__declspec(dllexport)
 #else
-#define CLASS_DECLSPEC    __declspec(dllimport)
+#define CLASS_DECLSPEC    //__declspec(dllimport)
 #endif
 
 #pragma warning(disable: 4251) // vector without dllexport
@@ -374,7 +374,7 @@ struct ContourPoint{
 };
 dmat contourc(dvec x, dvec y, dmat Z, dvec v);
 
-class CLASS_DECLSPEC MatPlot{///
+class MatPlot{///
  private:
     int is_debug1;
     int is_debug2;
@@ -548,13 +548,13 @@ class CLASS_DECLSPEC MatPlot{///
     void vertex(double x,double y,double z);
 
     int line();
-    int line(dvec x,dvec y);
-    int line(dvec x,dvec y,dvec z);
+    int line(dvec& x,dvec& y);
+    int line(dvec& x, dvec& y, dvec& z);
     //line(X,Y)
     //line(X,Y,Z)
 
-    int plot(dvec y);
-    int plot(dvec x,dvec y);    
+    int plot(dvec& y);
+    int plot(dvec& x,dvec& y);    
     //int plot(dmat Y);
     //int plot(dvec x,dmat Y);
     //int plot(dmat X,dmat Y);
@@ -574,17 +574,8 @@ class CLASS_DECLSPEC MatPlot{///
     int errorbar(dvec x,dvec y,dvec e);
     int errorbar(dvec x,dvec y,dvec ep,dvec em);
 
-    //int quiver(U,V);
-    //int quiver(X,Y,U,V);
-    
-    //int scatter(X,Y,S,C)
-    //int scatter(X,Y,S)
-    //int scatter(X,Y)
-
     // Surface, Contour ///
     dmat peaks(int n);
-    //dmat peaks(int m,int n);
-    //dmat peaks(int m,int n,string type);
 
     int surface();
     int surface(dmat Z);
@@ -610,21 +601,8 @@ class CLASS_DECLSPEC MatPlot{///
     int contour(dvec x, dvec y, dmat Z);
     int contour(dvec x, dvec y, dmat Z,int n);
     int contour(dvec x, dvec y, dmat Z,dvec v);
-    //int contour(dmat X, dmat Y, dmat Z);
-    //int contour(dmat X, dmat Y, dmat Z,int n);
-    //int contour(dmat X, dmat Y, dmat Z,dvec v);
 
-    //int mesh(dmat Z);
-    //int mesh(dmat Z,dmat C);
-    //int mesh(dmat Z,tcmat C);    
     int mesh(dvec x, dvec y, dmat Z);
-    //int mesh(dvec x, dvec y, dmat Z,dmat C);
-    //int mesh(dvec x, dvec y, dmat Z,tcmat C);    
-    //int mesh(dmat X,dmat Y,dmat Z);
-    //int mesh(dmat X,dmat Y,dmat Z,dmat C);
-    //int mesh(dmat X,dmat Y,dmat Z,tcmat C);
-    // meshc()
-    // meshz()
 
     int surf(dvec x, dvec y, dmat Z);
 
@@ -637,30 +615,11 @@ class CLASS_DECLSPEC MatPlot{///
     int patch(dmat X,dmat Y,dmat Z);//!!
     int patch(dmat X,dmat Y,dmat Z,dvec C);//!!    
     int patch(dmat X,dmat Y,dmat Z,tcvec C);//!!
-    //int patch(dmat X,dmat Y,tcmat C);
-    //int patch(dmat X,dmat Y,dmat Z,tcmat C);
 
     int bar(dvec y);
     int bar(dvec y,float width);
     int bar(dvec x,dvec y);
     int bar(dvec x,dvec y,float width);
-
-    //int bar(Y)
-    //int bar(Y,float width);
-    //int bar(Y,string style);
-    //int bar(Y,float width,string style);
-
-    //int bar(x,Y)
-    //int bar(x,Y,float width);
-    //int bar(x,Y,string style);
-    //int bar(x,Y,float width,string style);
-      
-    //int hist(y);
-    //int hist(y,x);
-    //int hist(y,nbins);
-
-    //int pie(dvec x);
-    //int pie(dvec x, vector<int> Explode);
 
     // Text ///
     //TODO: more fonts    
