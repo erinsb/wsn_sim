@@ -27,7 +27,15 @@ timer_t Timer::orderAt(uint32_t timestamp, const std::function<void(uint32_t, vo
 
 timer_t Timer::orderRelative(uint32_t deltaTime, const std::function<void(uint32_t, void*)> callback, void* context)
 {
-  return orderAt(getTimestamp() + deltaTime, callback, context);
+  return orderAt(getTimestamp() + deltaTime * mDriftFactor, callback, context);
+}
+
+timer_t Timer::orderPeriodic(uint32_t firstTimeout, uint32_t interval, const std::function<void(uint32_t, void*)> callback, void* context)
+{
+  timer_t id = orderAt(firstTimeout, callback, context);
+  getTimeoutStruct(id)->mInterval = interval;
+
+  return id;
 }
 
 void Timer::reschedule(timer_t timer, uint32_t timestamp)
@@ -73,12 +81,21 @@ void Timer::step(uint32_t timestamp)
   auto it = mTimeouts.begin(); 
   while (it != mTimeouts.end())
   {
-    if ((*it)->mTimestamp <= getTimerTime(timestamp)) // watch out for the difference in drift and execution time for event driven Env
+    if ((*it)->mTimestamp <= timestamp + TIMER_DRIFT_MARGIN) // watch out for the difference in drift and execution time for event driven Env
     {
       Timeout* to = *it;
       if (!to->invalid)
       {
         to->fire();
+
+        // reschedule periodic timer:
+        if (to->mInterval > 0)
+        {
+          to->mTimestamp += to->mInterval * mDriftFactor;
+          to->invalid = false;
+
+          getEnvironment()->registerExecution(this, to->mTimestamp);
+        }
       }
       else
       {

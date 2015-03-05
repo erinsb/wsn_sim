@@ -20,6 +20,7 @@ public:
   }
   const std::function<void(uint32_t, void*)> mCallback;
   uint32_t mTimestamp;
+  uint32_t mInterval;
   bool invalid = false;
   timer_t mTimerID;
   void* mContext;
@@ -32,19 +33,23 @@ public:
   ~Timer();
 
   void setDriftFactor(double driftFactor) { mDriftFactor = driftFactor; }
+  double getDriftFactor(void) { return mDriftFactor; }
   void resetDrift(void);
 
   timer_t orderAt(uint32_t timestamp, const std::function<void(uint32_t, void*)> callback, void* context = NULL);
   timer_t orderRelative(uint32_t deltaTime, const std::function<void(uint32_t, void*)> callback, void* context = NULL);
+  timer_t orderPeriodic(uint32_t firstTimeout, uint32_t interval, const std::function<void(uint32_t, void*)> callback, void* context = NULL);
   void reschedule(timer_t timer, uint32_t timestamp);
   void abort(timer_t timer);
   uint32_t getExpiration(timer_t timer);
+  void setContext(timer_t timer, void* context);
 
   uint32_t getTimestamp(void);
 
   virtual void step(uint32_t timestamp);
 
   uint32_t getGlobalTimeAtLocalTime(uint32_t time);
+  uint32_t getTimerTime(uint32_t globalTime);
 
 private:
   uint32_t mDriftAnchor;
