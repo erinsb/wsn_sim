@@ -59,7 +59,7 @@ private:
   std::vector<execution_t> mExecutionList;
   uint32_t mNextExecution = 0;
   bool mExecutionListInvalidated = false;
-  void step(void);
+  void step(uint32_t stopTime);
 };
 
 

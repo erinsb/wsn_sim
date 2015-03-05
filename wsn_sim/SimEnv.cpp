@@ -84,14 +84,9 @@ void SimEnv::run(uint32_t stopTime, uint32_t deltaTime)
   }
   mEndBarrier.reset(THREAD_COUNT + 1);
 #else
-  for (auto it = mRunnables.begin(); it != mRunnables.end(); it++)
-  {
-    (*it)->step(getTimestamp());
-  }
-
   while (mRunning && mTime < stopTime)
   {
-    step();
+    step(stopTime);
     mTime = mNextExecution;
   }
 #endif
@@ -102,7 +97,7 @@ void SimEnv::registerExecution(Runnable* executor, uint32_t timestamp)
 {
   if (timestamp > getTimestamp())
   {
-    if (timestamp < mNextExecution)
+    if (timestamp < mNextExecution || mExecutionList.size() == 0)
     {
       mNextExecution = timestamp;
     }
@@ -117,9 +112,9 @@ void SimEnv::registerExecution(Runnable* executor, uint32_t timestamp)
 }
 
 
-void SimEnv::step(void)
+void SimEnv::step(uint32_t stopTime)
 {
-  mNextExecution = UINT32_MAX;
+  mNextExecution = stopTime;
   auto it = mExecutionList.begin();
   volatile uint32_t i = 0;
   while (it != mExecutionList.end())
