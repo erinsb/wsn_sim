@@ -42,6 +42,7 @@ public:
   } pos_t;
 
   pos_t pos;
+  std::string mName;
 
 
 protected:

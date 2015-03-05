@@ -2,7 +2,7 @@
 #include "Radio.h"
 #include <math.h>
 
-Device::Device(double x, double y)
+Device::Device(double x, double y) : mName("Device")
 {
   pos.x = x;
   pos.y = y;
