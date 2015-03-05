@@ -3,7 +3,10 @@
 
 #include <ostream>
 
-#define LOG_RX Logger("[RX]: ", RADIO_LOG_ENABLED)
+#ifdef LOG_ENABLE
+#undef LOG_ENABLE
+#endif
+#define LOG_ENABLE  (0)
 
 const double Radio::powerProfile[] =
 {
