@@ -5,13 +5,13 @@
 #include "PowerPlotter.h"
 #include <Windows.h>
 
-#define DEVICE_COUNT  (4)
+#define DEVICE_COUNT  (8)
 #define AREA_SIZE     (1.0)
-#define SIM_TIME      (1 * SECONDS)
+#define SIM_TIME      (1 * MINUTES)
 
 int main(void)
 {
-  system("mode con:cols=120 lines=1000");
+  system("mode con:cols=120 lines=10000");
   HWND console = GetConsoleWindow();
   MoveWindow(console, 0, 0, 800, 1100, true);
 
@@ -20,6 +20,7 @@ int main(void)
   std::vector<MeshDevice*> devices;
   pLoggerSimEnv = &env;
   env.attachRunnable(&wsn);
+  env.setReportRate(1 * SECONDS);
 
   for (uint32_t i = 0; i < DEVICE_COUNT; ++i)
   {
@@ -37,6 +38,6 @@ int main(void)
     pDev->print();
     plotter.addDevice(pDev);
   }
-  plotter.displayGraph(0, 10*MS);
+  plotter.displayGraph(100*MS, 200*MS);
   return 0;
 }
