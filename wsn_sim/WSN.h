@@ -23,6 +23,8 @@ public:
   bool removeReceiver(Radio* radio);
   bool hasReceiver(Radio* radio);
 
+  void setDropRate(double dropRate) { mDropRate = dropRate; }
+
   void addDevice(Device* device);
 
   RadioPacket* getRadioPacket(packetHandle_t handle) const;
@@ -66,10 +68,10 @@ private:
   std::vector<RadioPacket*> mPackets;
   std::vector<PacketReceiver> mReceivers;
   bool mReceiverListChanged;
-  std::mutex mReceiverListMut;
-  uint32_t getDevIndex(const Device* dev);
   std::vector<connection_t> mConnections;
+  double mDropRate;
 
+  uint32_t getDevIndex(const Device* dev);
   std::vector<PacketReceiver*> getReceiversListening(RadioPacket* pPacket);
   std::vector<PacketReceiver*> getPacketReceiversInRange(RadioPacket* pPacket);
 };
