@@ -1,0 +1,3 @@
+[submodule "randomlib"]
+	path = randomlib
+	url = git://git.code.sf.net/p/randomlib/code
