@@ -10,7 +10,8 @@
 #define MESH_INTERVAL               (100L*MS)
 #define MESH_MAX_SUBSCRIPTIONS      (8)
 #define MESH_OPTIMAL_SUBSCRIPTIONS  (4)
-#define MESH_MAX_CLOCK_DRIFT        (100.0 * PPM)
+#define MESH_MAX_LOSS_COUNT         (6)
+#define MESH_MAX_CLOCK_DRIFT        (500.0 * PPM)
 #define MESH_MAX_CLOCK_DRIFT_TWO_SIDED  (MESH_MAX_CLOCK_DRIFT * 2.2)
 #define MESH_CH_OFFSET_US(offs)     (625 * ((uint32_t) offs)
 #define MESH_CH_BEACON_MARGIN       (1000)
@@ -182,7 +183,9 @@ private:
   uint8_t mNodeWeight;
   uint32_t mBeaconCount;
   uint32_t mBeaconInterval;
+  uint32_t mLostPackets;
   timer_t mRxTimer;
+  MeshDevice* mDev; // for debugging
 };
 
 
@@ -194,6 +197,7 @@ public:
   void setAdvAddress(uint64_t addr);
 
   void start(void);
+  void kill(void);
 
   void startSearch(void);
   void stopSearch(void);
@@ -201,7 +205,7 @@ public:
   void startBeaconing(void);
   void stopBeaconing(void);
 
-  MeshNeighbor* registerNeighbor(ble_adv_addr_t* advAddr, uint32_t rxTime, mesh_packet_t* pPacket = NULL);
+  MeshNeighbor* registerNeighbor(ble_adv_addr_t* advAddr, uint32_t rxTime, mesh_packet_t* pPacket = NULL, Device* pDev = NULL);
   MeshNeighbor* getNeighbor(ble_adv_addr_t* advAddr);
   void abortSubscription(MeshNeighbor* pSub);
   bool isSubscribedTo(ble_adv_addr_t* addr);
@@ -238,7 +242,7 @@ public:
 
 private:
   route_entry_t mRoutes[MESH_MAX_ROUTES];
-  std::vector<MeshNeighbor> mNeighbors;
+  std::vector<MeshNeighbor*> mNeighbors;
   std::queue<mesh_packet_t*> mPacketQueue;
   std::vector<MeshNeighbor*> mSubscriptions;
   mesh_packet_t mDefaultPacket;
