@@ -1,5 +1,6 @@
 #pragma once
 #include "Runnable.h"
+#include "RandomLib\Random.hpp"
 #include <stdint.h>
 #include <vector>
 
@@ -7,6 +8,7 @@ class Device;
 class RadioPacket;
 class Radio;
 typedef uint32_t packetHandle_t;
+
 
 class WSN : public Runnable
 {
@@ -67,6 +69,7 @@ private:
   std::vector<Device*> mDevices;
   std::vector<RadioPacket*> mPackets;
   std::vector<PacketReceiver> mReceivers;
+  RandomLib::Random mRand;
   bool mReceiverListChanged;
   std::vector<connection_t> mConnections;
   double mDropRate;

@@ -56,7 +56,7 @@ void WSN::endTransmit(packetHandle_t packetHandle)
   for (PacketReceiver* pRecv : receivers)
   {
     radios.push_back(pRecv->mRadio);
-    corrupted.push_back(pRecv->packetIsCorrupted(pPacket) && (rand() > uint32_t(mDropRate * RAND_MAX)));
+    corrupted.push_back(pRecv->packetIsCorrupted(pPacket) && (mRand.Float() > mDropRate));
   }
 
   for (uint8_t i = 0; i < radios.size(); ++i)
