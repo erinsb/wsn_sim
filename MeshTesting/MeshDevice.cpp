@@ -517,14 +517,14 @@ void MeshDevice::radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool 
         // alter timeout
         if (chLeaf.mFollowing)
         {
-          resync(&chLeaf);          
+          //resync(&chLeaf);          
         }
       }
     }
   }
   if (pNb == mClusterHead)
   {
-    //mTimer->reschedule(mBeaconTimerID, mTimer->getTimerTime(packet->mStartTime) + mCHBeaconOffset - MESH_TX_RU_TIME);
+    mTimer->reschedule(mBeaconTimerID, mTimer->getTimerTime(packet->mStartTime) + mCHBeaconOffset - MESH_TX_RU_TIME);
   }
 
   processPacket(pMeshPacket);
