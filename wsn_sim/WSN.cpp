@@ -3,7 +3,7 @@
 #include "Radio.h"
 #include <fstream>
 
-#define GRAPHVIZ_SCALING (10.0)
+#define GRAPHVIZ_SCALING (5.0)
 
 
 WSN::WSN() : mPacketCount(0), mPacketsDeletedCount(0), mDropRate(0.0)
@@ -167,8 +167,15 @@ bool WSN::hasReceiver(Radio* radio)
 
 void WSN::addConnection(Device* first, Device* second, bool strong)
 {
-  if (connectionExists(first, second))
-    return;
+  // replace strong value if conn already exists
+  for (connection_t& conn : mConnections)
+  {
+    if (conn.is(first, second))
+    {
+      conn.strong = strong;
+      return;
+    }
+  }
 
   connection_t conn;
   conn.pFirst = first;
@@ -220,18 +227,35 @@ void WSN::exportGraphViz(std::string filename)
 
   file << "strict graph {\n";
   file << "\tnode [width = \"" << 0.025 * GRAPHVIZ_SCALING << 
-    "\" height =\"" << 0.025 * GRAPHVIZ_SCALING << "\" label=\"\", fixedsize=true]\n";
+    "\" height =\"" << 0.025 * GRAPHVIZ_SCALING << "\" label=\"\", fixedsize=false]\n";
+  file << "graph [dpi=300]\n";
 
   for (uint32_t i = 0; i < mDevices.size(); ++i)
   {
     file << "\t" << i
-      << " [pos=\"" << GRAPHVIZ_SCALING * mDevices[i]->pos.x << "," 
-      << GRAPHVIZ_SCALING * mDevices[i]->pos.y << "\"]\n";
+      << " [pos=\"" << GRAPHVIZ_SCALING * mDevices[i]->pos.x << ","
+      << GRAPHVIZ_SCALING * mDevices[i]->pos.y << "\", fontsize=12, fontname=\"Consolas\", xlabel=\"" << mDevices[i]->mName << "\" ";
+    switch (mDevices[i]->mDevTag)
+    {
+    case DEVICE_TAG_NONE:
+      break;
+    case DEVICE_TAG_WEAK:
+      file << "style=\"filled\", color=\"gray\"";
+      break;
+    case DEVICE_TAG_MEDIUM:
+      file << "style=\"filled\", color=\"red\"";
+      break;
+    case DEVICE_TAG_STRONG:
+      file << "style=\"filled\", color=\"black\"";
+      break;
+    }
+
+    file << "]\n";
   }
 
   for (connection_t& conn : mConnections)
   {
-    file << "\t" << getDevIndex(conn.pFirst) << " --- " << getDevIndex(conn.pSecond);
+    file << "\t" << getDevIndex(conn.pFirst) << " -- " << getDevIndex(conn.pSecond);
     if (!conn.strong)
       file << " [style=dotted]";
     file << "\n";
