@@ -3,11 +3,12 @@
 #include "SimEnv.h"
 #include "Logger.h"
 #include "PowerPlotter.h"
+#include "RandomLib\Random.hpp"
 #include <Windows.h>
 
-#define DEVICE_COUNT  (8)
-#define AREA_SIZE     (1.0)
-#define SIM_TIME      (1 * MINUTES)
+#define DEVICE_COUNT  (1000)
+#define AREA_SIZE     (400.0)
+#define SIM_TIME      (20 * SECONDS)
 
 int main(void)
 {
@@ -18,26 +19,37 @@ int main(void)
   SimEnv env;
   WSN wsn;
   std::vector<MeshDevice*> devices;
+  RandomLib::Random randPlacer;
+
   pLoggerSimEnv = &env;
   env.attachRunnable(&wsn);
   env.setReportRate(1 * SECONDS);
+  wsn.setDropRate(0.1);
 
   for (uint32_t i = 0; i < DEVICE_COUNT; ++i)
   {
-    MeshDevice* pDev = new MeshDevice("mesh_" + std::to_string(i), ((double)rand() / RAND_MAX) * AREA_SIZE, ((double)rand() / RAND_MAX) * AREA_SIZE);
+    MeshDevice* pDev = new MeshDevice("MESH_" + std::to_string(i), randPlacer.Float() * AREA_SIZE, randPlacer.Float() * AREA_SIZE);
     devices.push_back(pDev);
     wsn.addDevice(pDev);
     pDev->start();
   }
   
+  env.run(SIM_TIME / 2);
+
+  // kill the CH
+  //devices[6]->stopBeaconing();
+
   env.run(SIM_TIME);
 
   PowerPlotter plotter;
   for (MeshDevice* pDev : devices)
   {
-    pDev->print();
-    plotter.addDevice(pDev);
+    //pDev->print();
+    //plotter.addDevice(pDev);
   }
-  plotter.displayGraph(100*MS, 200*MS);
+
+  wsn.exportGraphViz("test1");
+  //plotter.displayGraph(100*MS, 200*MS);
+  //system("pause");
   return 0;
 }
