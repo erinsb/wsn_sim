@@ -1,4 +1,5 @@
 #include "PowerPlotter.h"
+#include "Radio.h"
 #include <vector>
 #include <Windows.h>
 
@@ -176,7 +177,7 @@ void PowerPlotter::DISPLAY(void)
   for (uint32_t i = 0; i < mDevices.size(); ++i)
   {
     subplot(mDevices.size(), 1, i + 1);
-    this->title(mDevices[i]->mName);
+    this->ylabel(mDevices[i]->mName);
     plotDevice(mDevices[i]);
   }
 }
@@ -225,4 +226,21 @@ void PowerPlotter::plotDevice(Device* pDev)
   if (time.size() > 1)
     plot(time, power);
 
+  dvec txPower, rxPower;
+  dvec timeStartEnd;
+
+  txPower.push_back(RADIO_POWER_TX);
+  txPower.push_back(RADIO_POWER_TX);
+
+  rxPower.push_back(RADIO_POWER_RX);
+  rxPower.push_back(RADIO_POWER_RX);
+  timeStartEnd.push_back(mStartTime);
+  timeStartEnd.push_back(mEndTime);
+
+  plot(timeStartEnd, txPower);
+  set(":");
+  set("r");
+  plot(timeStartEnd, rxPower);
+  set(":");
+  set("g");
 }
