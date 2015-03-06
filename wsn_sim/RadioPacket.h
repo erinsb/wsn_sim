@@ -5,7 +5,7 @@
 #include <iostream>
 #include <iomanip>
 
-#define RADIO_SIGNAL_DECAY (1.0)
+#define RADIO_SIGNAL_DECAY (5.0)
 
 class Radio;
 
@@ -17,7 +17,7 @@ public:
   RadioPacket(void);
   ~RadioPacket();
 
-  double getMaxDistance(void) { return mSignalStrength * RADIO_SIGNAL_DECAY; }
+  double getMaxDistance(void) { return mSignalStrength / RADIO_SIGNAL_DECAY; }
 
   bool collidesWith(RadioPacket* pOther) const;
 
