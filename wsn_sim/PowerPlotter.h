@@ -12,7 +12,8 @@ public:
   void toggleGrid(void);
   void addDevice(Device* pDev) { mDevices.push_back(pDev); }
   void displayGraph(uint32_t startTime, uint32_t endTime, Device* pDev = NULL);
-  void DISPLAY(void);
+
+  void DISPLAY(void); // don't use
   uint32_t mStartTime, mEndTime;
 private:
   int mGrid;
