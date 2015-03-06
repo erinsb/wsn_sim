@@ -22,7 +22,7 @@ Version:0.3.11
 #define CLASS_DECLSPEC    //__declspec(dllimport)
 #endif
 
-#pragma warning(disable: 4251) // vector without dllexport
+
 
 using namespace std;
 

@@ -298,10 +298,6 @@ std::vector<WSN::PacketReceiver*> WSN::getPacketReceiversInRange(RadioPacket* pP
     {
       resultVector.push_back(&receiver);
     }
-    else
-    {
-      _ERROR("Receiver out of range");
-    }
   }
   return resultVector;
 }
