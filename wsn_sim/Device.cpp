@@ -12,6 +12,7 @@ Device::Device(double x, double y) : mName("Device")
     RADIO_DEFAULT_TIFS, 
     RADIO_DEFAULT_BITRATE);
   mTimer = new Timer(1.0);
+  mRand.Reseed();
 }
 
 Device::Device() : Device(0.0, 0.0)

@@ -3,7 +3,16 @@
 #include "Runnable.h"
 #include "Timer.h"
 #include "PowerPlotter.h"
+#include "RandomLib\Random.hpp"
 
+
+typedef enum
+{
+  DEVICE_TAG_NONE,
+  DEVICE_TAG_WEAK,
+  DEVICE_TAG_MEDIUM,
+  DEVICE_TAG_STRONG
+} device_tag_t;
 
 class Device : public Runnable
 {
@@ -49,6 +58,8 @@ protected:
   Radio* mRadio;
   Timer* mTimer;
   WSN* mWSN;
+  device_tag_t mDevTag; // for graph output
+  RandomLib::Random mRand;
   virtual void radioCallbackTx(RadioPacket* packet){};
   virtual void radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool corrupted){};
 private:
