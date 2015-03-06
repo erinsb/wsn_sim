@@ -1,9 +1,6 @@
 #pragma once
 #include "SimEnv.h"
 #include <string>
-#include <iostream>
-#include <sstream>
-#include <mutex>
 #include <stdarg.h>
 
 #if defined(_WIN32) || defined(_WIN64)
@@ -11,7 +8,7 @@
 #endif
 
 #ifndef LOG_ENABLE  
-  #define LOG_ENABLE        (1)
+  #define LOG_ENABLE        (0)
 #endif
 
 extern SimEnv* pLoggerSimEnv;
@@ -49,7 +46,7 @@ if (!LOG_ENABLE) break; \
   ((pLoggerSimEnv != NULL)? pLoggerSimEnv->getTimestamp() : 0), __VA_ARGS__);\
   LOG_COLOR_RESET; } while(0)
 #else
-#define _LOG(str, ...) 
-#define _ERROR(str, ...)
-#define _WARN(str, ...)
+#define _LOG(str, ...) (void)0
+#define _ERROR(str, ...) (void)0
+#define _WARN(str, ...) (void)0
 #endif
