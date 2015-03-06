@@ -1,9 +1,7 @@
 #pragma once
 #include "Runnable.h"
 #include "Multithreading.h"
-#include <mutex>
 #include <vector>
-#include <thread>
 #include <stdint.h>
 
 #define USE_THREADS   (0)

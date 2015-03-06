@@ -3,6 +3,10 @@
 #include <thread>
 #include "Logger.h"
 
+#undef LOG_ENABLE
+#define LOG_ENABLE  (1)
+
+#define SORTED_EXECUTION_LIST (1)
 
 SimEnv::SimEnv(void) : mReportRate(0), mLastReport(0)
 {
@@ -84,7 +88,7 @@ void SimEnv::run(uint32_t stopTime, uint32_t deltaTime)
   }
   mEndBarrier.reset(THREAD_COUNT + 1);
 #else
-  if (mReportRate > 0)
+  if (mReportRate > 0 && LOG_ENABLE)
   {
     registerExecution(NULL, mTime + mReportRate - (mTime + mReportRate) % mReportRate);
   }
@@ -108,8 +112,26 @@ void SimEnv::registerExecution(Runnable* executor, uint32_t timestamp)
       mNextExecution = timestamp;
     }
     execution_t ex = { executor, timestamp };
-    mExecutionList.push_back(ex);
     mExecutionListInvalidated = true;
+#if SORTED_EXECUTION_LIST
+    if (mExecutionList.size() == 0)
+    {
+      mExecutionList.push_back(ex);
+      return;
+    }
+
+    for (auto it = mExecutionList.rbegin(); it != mExecutionList.rend(); it++)
+    {
+      if (it->timestamp > timestamp)
+      {
+        mExecutionList.insert(it.base(), ex);
+        return;
+      }
+    }
+    mExecutionList.insert(mExecutionList.begin(), ex); // last exec
+#else
+    mExecutionList.push_back(ex);
+#endif
   }
   else
   {
@@ -121,21 +143,22 @@ void SimEnv::registerExecution(Runnable* executor, uint32_t timestamp)
 void SimEnv::step(uint32_t stopTime)
 {
   mNextExecution = stopTime;
-  auto it = mExecutionList.begin();
+  auto it = mExecutionList.rbegin();
   volatile uint32_t i = 0;
-  while (it != mExecutionList.end())
+  while (it != mExecutionList.rend())
   {
-    if (it->timestamp <= mTime)
+    execution_t* pEx = &(*it);
+    if (pEx->timestamp <= mTime)
     {
-      Runnable* pRunnable = it->pRunnable;
-      uint32_t timestamp = it->timestamp;
+      Runnable* pRunnable = pEx->pRunnable;
+      uint32_t timestamp = pEx->timestamp;
 
-      it = mExecutionList.erase(it);
+      mExecutionList.erase(--(it.base()));
 
       if (pRunnable != NULL)
         pRunnable->step(timestamp);
 
-      if (mTime % mReportRate == 0 && mTime > mLastReport)
+      if (mTime % mReportRate == 0 && mTime > mLastReport && LOG_ENABLE)
       {
         LOG_COLOR(FOREGROUND_BLUE | FOREGROUND_INTENSITY);
         printf("|%02d:%02d.%06d|----------------------------------------------------------------\n", mTime / MINUTES, mTime / SECONDS, mTime % SECONDS);
@@ -146,16 +169,20 @@ void SimEnv::step(uint32_t stopTime)
 
       if (mExecutionListInvalidated)
       {
-        it = mExecutionList.begin(); // reset, as the vector is dirty
+        it = mExecutionList.rbegin(); // reset, as the vector is dirty
       }
     }
     else
     {
-      if (it->timestamp < mNextExecution)
+      if (pEx->timestamp < mNextExecution)
       {
-        mNextExecution = it->timestamp;
+        mNextExecution = pEx->timestamp;
       }
+#if SORTED_EXECUTION_LIST
+      break;
+#else
       it++;
+#endif
     }
     i++;
   }

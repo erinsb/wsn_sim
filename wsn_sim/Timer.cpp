@@ -1,6 +1,6 @@
 #include "Timer.h"
 
-Timer::Timer(double drift) : mDriftFactor(drift), mDriftAnchor(0)
+Timer::Timer(double drift) : mDriftFactor(drift), mDriftAnchor(0), mCurrentTimeout(NULL), mNextTimerIndex(1)
 {
 }
 
@@ -55,8 +55,16 @@ void Timer::abort(timer_t timer)
   {
     if ((*it)->mTimerID == timer)
     {
-      delete (*it);
-      it = mTimeouts.erase(it);
+      if (*it == mCurrentTimeout)
+      {
+        (*it)->invalid = true;
+      }
+      else
+      {
+        delete (*it);
+        it = mTimeouts.erase(it);
+      }
+      mIteratorInvalidated = true;
     }
     else
     {
@@ -95,23 +103,25 @@ void Timer::step(uint32_t timestamp)
   {
     if ((*it)->mTimestamp <= timestamp + TIMER_DRIFT_MARGIN) // watch out for the difference in drift and execution time for event driven Env
     {
-      Timeout* to = *it;
-      if (!to->invalid)
+      mCurrentTimeout = *it;
+      if (!mCurrentTimeout->invalid)
       {
-        to->fire();
+        mCurrentTimeout->fire();
 
         // reschedule periodic timer:
-        if (to->mInterval > 0)
+        if (mCurrentTimeout->mInterval > 0 && !mCurrentTimeout->invalid)
         {
-          to->mTimestamp += to->mInterval * mDriftFactor;
-          to->invalid = false;
+          mCurrentTimeout->mTimestamp += mCurrentTimeout->mInterval * mDriftFactor;
+          mCurrentTimeout->invalid = false;
 
-          getEnvironment()->registerExecution(this, to->mTimestamp);
+          getEnvironment()->registerExecution(this, mCurrentTimeout->mTimestamp);
         }
+        mCurrentTimeout = NULL;
       }
       else
       {
-        delete to;
+        delete mCurrentTimeout;
+        mCurrentTimeout = NULL;
         it = mTimeouts.erase(it);
       }
 

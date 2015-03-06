@@ -15,7 +15,8 @@ public:
 
   void fire(void) 
   { 
-    invalid = true;
+    if (mInterval == 0)
+      invalid = true;
     mCallback(mTimestamp, mContext); 
   }
   const std::function<void(uint32_t, void*)> mCallback;
@@ -57,6 +58,7 @@ private:
   std::vector<Timeout*> mTimeouts;
   bool mIteratorInvalidated = false;
   timer_t mNextTimerIndex;
+  Timeout* mCurrentTimeout;
 
   Timeout* getTimeoutStruct(timer_t timer);
 };
