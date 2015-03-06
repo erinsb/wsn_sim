@@ -129,9 +129,7 @@ void WSN::addReceiver(Radio* radio)
 {
   if (!hasReceiver(radio))
   {
-    mReceiverListMut.lock();
-    mReceivers.push_back(PacketReceiver(radio));
-    mReceiverListMut.unlock();
+    mReceivers.push_back(PacketReceiver(radio)); 
   }
   else
   {
@@ -142,33 +140,27 @@ void WSN::addReceiver(Radio* radio)
 
 bool WSN::removeReceiver(Radio* radio)
 {
-  mReceiverListMut.lock();
   for (auto it = mReceivers.begin(); it != mReceivers.end(); it++)
   {
     if (it->mRadio == radio)
     {
       mReceivers.erase(it);
       mReceiverListChanged = true;
-      mReceiverListMut.unlock();
       return true;
     }
   }
-  mReceiverListMut.unlock();
   return false;
 }
 
 bool WSN::hasReceiver(Radio* radio)
 {
-  mReceiverListMut.lock();
   for (auto it = mReceivers.begin(); it != mReceivers.end(); it++)
   {
     if (it->mRadio == radio)
     {
-      mReceiverListMut.unlock();
       return true;
     }
   }
-  mReceiverListMut.unlock();
   return false;
 }
 
@@ -287,20 +279,17 @@ bool WSN::PacketReceiver::packetIsCorrupted(RadioPacket* pPacket) const
 
 std::vector<WSN::PacketReceiver*> WSN::getReceiversListening(RadioPacket* pPacket)
 {
-  mReceiverListMut.lock();
   std::vector<PacketReceiver*> resultVector;
   for (PacketReceiver& receiver : mReceivers)
   {
     if (receiver.hasPacket(pPacket))
       resultVector.push_back(&receiver);
   }
-  mReceiverListMut.unlock();
   return resultVector;
 }
 
 std::vector<WSN::PacketReceiver*> WSN::getPacketReceiversInRange(RadioPacket* pPacket)
 {
-  mReceiverListMut.lock();
   std::vector<PacketReceiver*> resultVector;
   for (PacketReceiver& receiver : mReceivers)
   {
@@ -314,7 +303,6 @@ std::vector<WSN::PacketReceiver*> WSN::getPacketReceiversInRange(RadioPacket* pP
       _ERROR("Receiver out of range");
     }
   }
-  mReceiverListMut.unlock();
   return resultVector;
 }
 
