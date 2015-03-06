@@ -4,7 +4,7 @@
 #include "Logger.h"
 
 
-SimEnv::SimEnv(void)
+SimEnv::SimEnv(void) : mReportRate(0), mLastReport(0)
 {
   mTime = 0;
 #if USE_THREADS
@@ -84,6 +84,12 @@ void SimEnv::run(uint32_t stopTime, uint32_t deltaTime)
   }
   mEndBarrier.reset(THREAD_COUNT + 1);
 #else
+  if (mReportRate > 0)
+  {
+    registerExecution(NULL, mTime + mReportRate - (mTime + mReportRate) % mReportRate);
+  }
+
+
   while (mRunning && mTime < stopTime)
   {
     step(stopTime);
@@ -126,7 +132,17 @@ void SimEnv::step(uint32_t stopTime)
 
       it = mExecutionList.erase(it);
 
-      pRunnable->step(timestamp);
+      if (pRunnable != NULL)
+        pRunnable->step(timestamp);
+
+      if (mTime % mReportRate == 0 && mTime > mLastReport)
+      {
+        LOG_COLOR(FOREGROUND_BLUE | FOREGROUND_INTENSITY);
+        printf("|%02d:%02d.%06d|----------------------------------------------------------------\n", mTime / MINUTES, mTime / SECONDS, mTime % SECONDS);
+        LOG_COLOR_RESET;
+        mLastReport = mTime;
+        registerExecution(NULL, mTime + mReportRate);
+      }
 
       if (mExecutionListInvalidated)
       {

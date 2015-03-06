@@ -33,6 +33,7 @@ public:
   uint32_t getTimestamp(void){ return mTime; }
   uint32_t numberOfRunnables(void) const;
   void attachRunnable(Runnable* runnable);
+  void setReportRate(uint32_t rate) { mReportRate = rate; };
   void stop(void) { mRunning = false; }
 
   void run(uint32_t stopTime = UINT32_MAX, uint32_t deltaTime = 1);
@@ -59,6 +60,9 @@ private:
   std::vector<execution_t> mExecutionList;
   uint32_t mNextExecution = 0;
   bool mExecutionListInvalidated = false;
+  uint32_t mReportRate;
+  uint32_t mLastReport;
+
   void step(uint32_t stopTime);
 };
 
