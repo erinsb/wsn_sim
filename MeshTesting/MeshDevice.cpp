@@ -166,7 +166,10 @@ void MeshDevice::start(void)
     MeshDevice* pMD = ((MeshDevice*)context);
     _MESHLOG(pMD->mName, "Stopped Searching");
     pMD->stopSearch();
-    pMD->electClusterHead();
+    if (pMD->electClusterHead())
+    {
+      pMD->optimizeSubscriptions();
+    }
   },
     this);
   
@@ -346,6 +349,24 @@ void MeshDevice::setClusterHead(MeshNeighbor* nb)
   mWSN->addConnection(this, nb->mDev);
 }
 
+void MeshDevice::optimizeSubscriptions(void)
+{
+  while (mSubscriptions.size() > MESH_OPTIMAL_SUBSCRIPTIONS)
+  {
+    MeshNeighbor* pSubToDestroy = NULL;
+    for (MeshNeighbor* pNb : mSubscriptions)
+    {
+      if (pNb->isClusterHead()) // clusterheads are always valuable subs
+        continue;
+      if (pSubToDestroy == NULL || pNb->mNodeWeight < pSubToDestroy->mNodeWeight) // kill strongest
+      {
+        pSubToDestroy = pNb;
+      }
+    }
+    abortSubscription(pSubToDestroy);
+  }
+}
+
 void MeshDevice::addRoute(ble_adv_addr_t* addr, uint32_t dist)
 {
   uint32_t timeNow = mTimer->getTimestamp();
@@ -479,6 +500,12 @@ void MeshDevice::radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool 
     mTimer->abort(mCurrentRXTimer);
     mCurrentRXTimer = 0;
     mInSubscriptionRX = false;
+  }
+
+  if (!hasClusterHead() && !mSearching)
+  {
+    if (electClusterHead())
+      optimizeSubscriptions();
   }
 
   if (packet == NULL)
@@ -651,7 +678,10 @@ void MeshDevice::rxStop(uint32_t timestamp, void* context)
     if (mClusterHead == pSub)
     {
       mClusterHead = NULL;
-      electClusterHead();
+      if (electClusterHead())
+      {
+        optimizeSubscriptions();
+      }
     }
   }
 

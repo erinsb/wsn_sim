@@ -229,8 +229,10 @@ public:
 
   bool hasMessageID(msgID_t messageID) { return mMsgIDcache.hasID(messageID); }
     
-  void setClusterHead(MeshNeighbor* pNb);
   void setNodeWeight(uint8_t weight){ mNodeWeight = weight; }
+  void setClusterHead(MeshNeighbor* pNb);
+  bool hasClusterHead(void) const { return (mClusterHead != NULL || mIsCH); }
+  void optimizeSubscriptions(void);
 
   void addRoute(ble_adv_addr_t* addr, uint32_t dist);
   bool hasRouteTo(ble_adv_addr_t* addr);
