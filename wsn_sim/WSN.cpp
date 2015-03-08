@@ -249,7 +249,7 @@ void WSN::exportGraphViz(std::string filename, uint32_t area_diameter, double sp
   file << "strict digraph {\n";
   file << "\tnode [width = \"" << GRAPHVIZ_SCALING * areaSqrt2 << 
     "\" height =\"" << GRAPHVIZ_SCALING * areaSqrt2 << "\" label=\"\", fixedsize=false,";
-  file << "fontsize = " << areaSqrt / 2 << ", fontname = \"Consolas\"]\n";
+  file << "fontsize = " << areaSqrt << ", fontname = \"Consolas\"]\n";
   file << "\tgraph [dpi=" << min(uint32_t(100 * (50.0 / areaSqrt)), 1000) << "]\n\n";
   
 
@@ -288,13 +288,13 @@ void WSN::exportGraphViz(std::string filename, uint32_t area_diameter, double sp
   if (symmetric.size() > 0)
   {
     file << "\n\tsubgraph sym {\n";
-    file << "\t\tedge [color=red, dir=none]\n";
+    file << "\t\tedge [style=solid, dir=none]\n";
 
     for (connection_t* pConn : symmetric)
     {
       file << "\t\t" << getDevIndex(pConn->pFirst) << " -> " << getDevIndex(pConn->pSecond);
-      if (!pConn->strong)
-        file << " [style=dotted]"; 
+      if (pConn->strong)
+        file << " [color=\"red\"]"; 
       file << "\n";
     }
 
@@ -303,13 +303,13 @@ void WSN::exportGraphViz(std::string filename, uint32_t area_diameter, double sp
   if (asymmetric.size() > 0)
   {
     file << "\n\tsubgraph asym {\n";
-    file << "\t\tedge [arrowsize = " << 2 * GRAPHVIZ_SCALING * areaSqrt2 << "]\n";
+    file << "\t\tedge [style=dotted, arrowtype=\"open\", arrowsize = " << 2 * GRAPHVIZ_SCALING * areaSqrt2 << "]\n";
     for (connection_t* pConn : asymmetric)
     {
       // !! reversing the direction for visual representation (the subscriber is at the end of the arrow)
       file << "\t\t" << getDevIndex(pConn->pSecond) << " -> " << getDevIndex(pConn->pFirst);
-      if (!pConn->strong)
-        file << " [style=dotted]"; 
+      if (pConn->strong)
+        file << " [color=\"red\"]"; 
       file << "\n";
     }
 
