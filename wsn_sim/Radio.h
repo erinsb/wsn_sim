@@ -50,6 +50,8 @@ public:
   void disable(void);
   void setPacket(uint8_t* packet, uint8_t length);
   void setTifs(uint32_t tifs) { mTifs_us = (mTurnaroundTime_us > tifs)? mTurnaroundTime_us : tifs; }
+  void setChannel(uint32_t ch) { mChannel = ch; }
+  uint32_t getChannel(void) const { return mChannel; }
 
   void shortToRx(void);
   void shortToTx(void);
@@ -90,6 +92,7 @@ private:
   uint32_t mNextActionTime;
   uint8_t mTifs_us;
   uint8_t mSigStrength;
+  uint32_t mChannel;
 
   static const double powerProfile[7];
 

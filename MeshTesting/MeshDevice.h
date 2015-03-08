@@ -163,7 +163,7 @@ class MeshNeighbor
 public:
   MeshNeighbor(ble_adv_addr_t* addr);
 
-  void receivedBeacon(uint32_t rxTime, mesh_packet_t* beacon);
+  void receivedBeacon(uint32_t rxTime, mesh_packet_t* beacon, uint32_t channel);
 
   bool isClusterHead(void);
 
@@ -171,6 +171,7 @@ public:
   uint32_t getLastSyncTime(void) { return mLastSyncTime; }
   uint32_t getNextBeaconTime(uint32_t timeNow);
   uint32_t getSubscriptionScore(void);
+  uint32_t getNextChannel(void);
     
   ble_adv_addr_t mAdvAddr;
   bool mFollowing;
@@ -185,6 +186,7 @@ private:
   uint32_t mBeaconInterval;
   uint32_t mLostPackets;
   timer_t mRxTimer;
+  uint32_t mLastChannel;
   MeshDevice* mDev; // for debugging
 };
 
@@ -255,6 +257,7 @@ private:
   uint8_t mNodeWeight;
   uint32_t mCHBeaconOffset;
   uint32_t mLastBeaconTime;
+  uint32_t mBeaconCount;
   timer_t mBeaconTimerID;
   timer_t mCurrentRXTimer;
   msgIDcache_t mMsgIDcache;

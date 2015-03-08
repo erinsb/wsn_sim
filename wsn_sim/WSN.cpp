@@ -16,7 +16,7 @@ WSN::~WSN()
 {
 }
 
-WSN::PacketReceiver::PacketReceiver(Radio* radio) : mRadio(radio), mStartTime(radio->getEnvironment()->getTimestamp()){}
+WSN::PacketReceiver::PacketReceiver(Radio* radio) : mRadio(radio), mStartTime(radio->getEnvironment()->getTimestamp()), mChannel(radio->getChannel()){}
 
 void WSN::PacketReceiver::putPacket(RadioPacket* pPacket) { mPackets.push_back(pPacket); }
 
@@ -30,7 +30,10 @@ packetHandle_t WSN::startTransmit(RadioPacket& packet)
 
   for (PacketReceiver* receiver : receivers)
   {
-    receiver->putPacket(pPacket);
+    if (receiver->mChannel == pPacket->mChannel)
+    { 
+      receiver->putPacket(pPacket);
+    }
   }
 
   return mPacketCount++;

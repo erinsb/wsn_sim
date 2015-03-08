@@ -62,6 +62,7 @@ private:
 
     Radio* mRadio;
     uint32_t mStartTime;
+    uint32_t mChannel;
     std::vector<RadioPacket*> mPackets;
   };
 

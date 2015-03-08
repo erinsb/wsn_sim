@@ -32,6 +32,7 @@ public:
 
   uint32_t mStartTime;
   uint32_t mEndTime;
+  uint32_t mChannel;
 
 protected:
   SimEnv* p_mEnvironment;

@@ -15,6 +15,7 @@ RadioPacket::RadioPacket(Radio* const sender, uint8_t* data, uint32_t length) :
   mStartTime = p_mEnvironment->getTimestamp();  
   mEndTime = UINT32_MAX; //yet to be determined
   mSignalStrength = sender->getSignalStrength();
+  mChannel = sender->getChannel();
 }
 
 RadioPacket::RadioPacket(const RadioPacket& packet) : RadioPacket(packet.mSender, packet.mData, packet.mLength){}
@@ -43,7 +44,8 @@ bool RadioPacket::collidesWith(RadioPacket* pOther) const
     !(
       (this->mStartTime > pOther->mEndTime) ||
       (pOther->mStartTime > this->mEndTime)
-    )
+    ) &&
+      (pOther->mChannel == mChannel)
     );
 }
 
