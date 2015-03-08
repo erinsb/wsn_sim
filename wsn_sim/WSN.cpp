@@ -3,7 +3,7 @@
 #include "Radio.h"
 #include <fstream>
 
-#define GRAPHVIZ_SCALING (5.0)
+#define GRAPHVIZ_SCALING (0.06)
 
 
 WSN::WSN() : mPacketCount(0), mPacketsDeletedCount(0), mDropRate(0.0)
@@ -176,6 +176,10 @@ void WSN::addConnection(Device* first, Device* second, bool strong)
     if (conn.is(first, second))
     {
       conn.strong = strong;
+      if (conn.pFirst == second) // registered the other way
+      {
+        conn.symmetric = true;
+      }
       return;
     }
   }
@@ -184,6 +188,7 @@ void WSN::addConnection(Device* first, Device* second, bool strong)
   conn.pFirst = first;
   conn.pSecond = second;
   conn.strong = strong;
+  conn.symmetric = false;
   mConnections.push_back(conn);
 }
 
@@ -203,7 +208,20 @@ void WSN::removeConnection(Device* first, Device* second)
   {
     if (it->is(first, second))
     {
-      mConnections.erase(it);
+      if (it->symmetric)
+      {
+        if (it->pFirst == first) // must reverse direction
+        {
+          Device* pTemp = it->pFirst;
+          it->pFirst = it->pSecond;
+          it->pSecond = pTemp;
+        }
+        it->symmetric = false;
+      }
+      else
+      {
+        mConnections.erase(it);
+      }
       break;
     }
   }
@@ -215,29 +233,31 @@ std::vector<const Device*> WSN::getConnections(const Device* dev)
   for (connection_t& conn : mConnections)
   {
     if (conn.pFirst == dev)
-      resultVector.push_back(conn.pSecond);
-    else if (conn.pSecond == dev)
-      resultVector.push_back(conn.pFirst);
+      resultVector.push_back(conn.pSecond); // only outgoing
   }
 
   return resultVector;
 }
 
-void WSN::exportGraphViz(std::string filename)
+void WSN::exportGraphViz(std::string filename, uint32_t area_diameter, double spacing)
 {
   std::ofstream file; 
   file.open(filename);
+  double areaSqrt = sqrt(area_diameter);
+  double areaSqrt2 = sqrt(areaSqrt);
 
-  file << "strict graph {\n";
-  file << "\tnode [width = \"" << 0.025 * GRAPHVIZ_SCALING << 
-    "\" height =\"" << 0.025 * GRAPHVIZ_SCALING << "\" label=\"\", fixedsize=false]\n";
-  file << "graph [dpi=300]\n";
+  file << "strict digraph {\n";
+  file << "\tnode [width = \"" << GRAPHVIZ_SCALING * areaSqrt2 << 
+    "\" height =\"" << GRAPHVIZ_SCALING * areaSqrt2 << "\" label=\"\", fixedsize=false,";
+  file << "fontsize = " << areaSqrt / 2 << ", fontname = \"Consolas\"]\n";
+  file << "\tgraph [dpi=" << min(uint32_t(100 * (50.0 / areaSqrt)), 1000) << "]\n\n";
+  
 
   for (uint32_t i = 0; i < mDevices.size(); ++i)
   {
     file << "\t" << i
-      << " [pos=\"" << GRAPHVIZ_SCALING * mDevices[i]->pos.x << ","
-      << GRAPHVIZ_SCALING * mDevices[i]->pos.y << "\", fontsize=12, fontname=\"Consolas\", xlabel=\"" << mDevices[i]->mName << "\" ";
+      << " [pos=\"" << mDevices[i]->pos.x * 100 * spacing / areaSqrt << ","
+      << mDevices[i]->pos.y * 100 * spacing / areaSqrt << "\", xlabel=\"" << mDevices[i]->mName << "\" ";
     switch (mDevices[i]->mDevTag)
     {
     case DEVICE_TAG_NONE:
@@ -256,6 +276,46 @@ void WSN::exportGraphViz(std::string filename)
     file << "]\n";
   }
 
+  std::vector<connection_t*> symmetric, asymmetric;
+  for (connection_t& conn : mConnections)
+  {
+    if (conn.symmetric)
+      symmetric.push_back(&conn);
+    else
+      asymmetric.push_back(&conn);
+  }
+
+  if (symmetric.size() > 0)
+  {
+    file << "\n\tsubgraph sym {\n";
+    file << "\t\tedge [color=red, dir=none]\n";
+
+    for (connection_t* pConn : symmetric)
+    {
+      file << "\t\t" << getDevIndex(pConn->pFirst) << " -> " << getDevIndex(pConn->pSecond);
+      if (!pConn->strong)
+        file << " [style=dotted]"; 
+      file << "\n";
+    }
+
+    file << "\t}\n";
+  }
+  if (asymmetric.size() > 0)
+  {
+    file << "\n\tsubgraph asym {\n";
+    file << "\t\tedge [arrowsize = " << 2 * GRAPHVIZ_SCALING * areaSqrt2 << "]\n";
+    for (connection_t* pConn : asymmetric)
+    {
+      // !! reversing the direction for visual representation (the subscriber is at the end of the arrow)
+      file << "\t\t" << getDevIndex(pConn->pSecond) << " -> " << getDevIndex(pConn->pFirst);
+      if (!pConn->strong)
+        file << " [style=dotted]"; 
+      file << "\n";
+    }
+
+    file << "\t}\n";
+  }
+#if 0 // symmetric connections only
   for (connection_t& conn : mConnections)
   {
     file << "\t" << getDevIndex(conn.pFirst) << " -- " << getDevIndex(conn.pSecond);
@@ -263,7 +323,7 @@ void WSN::exportGraphViz(std::string filename)
       file << " [style=dotted]";
     file << "\n";
   }
-  
+#endif
   file << "}";
   while(file.is_open())
     file.close();

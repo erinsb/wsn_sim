@@ -36,14 +36,15 @@ public:
   bool connectionExists(Device* first, Device* second);
   void removeConnection(Device* first, Device* second);
   std::vector<const Device*> getConnections(const Device* dev);
-  void exportGraphViz(std::string filename);
+  void exportGraphViz(std::string filename, uint32_t area_diameter = 100, double spacing = 1.0);
 
   virtual void step(uint32_t timestamp);
 
 private:
   typedef struct
   {
-    const Device *pFirst, *pSecond;
+    Device *pFirst, *pSecond;
+    bool symmetric;
     bool strong;
     bool is(const Device* one, const Device* two) const
     {
