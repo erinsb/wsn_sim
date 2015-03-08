@@ -75,7 +75,7 @@ void MeshNeighbor::receivedBeacon(uint32_t rxTime, mesh_packet_t* beacon, uint32
       if (beacon->payload.str.payload.default.clusterAddr != mClusterHead)
       {
         if (mClusterHead == mAdvAddr)
-          _LOG("%s Became Cluster head!", mAdvAddr.toString().c_str());
+          _LOG("%s Became Cluster head!", mDev->mName.c_str());
       }
       mClusterHead.set(beacon->payload.str.payload.default.clusterAddr);
       mNbCount = beacon->payload.str.payload.default.nbCount;
@@ -164,7 +164,6 @@ void MeshDevice::start(void)
   mTimer->orderRelative(MESH_INTERVAL + MESH_CH_BEACON_MARGIN, [](uint32_t timeout, void* context)
   {
     MeshDevice* pMD = ((MeshDevice*)context);
-    _MESHLOG(pMD->mName, "Stopped Searching");
     pMD->stopSearch();
     if (pMD->electClusterHead())
     {
@@ -215,7 +214,7 @@ MeshNeighbor* MeshDevice::registerNeighbor(ble_adv_addr_t* advAddr, uint32_t rxT
   pNb->mDev = (MeshDevice*) pDev;
 
   pNb->receivedBeacon(rxTime, pPacket, mRadio->getChannel());
-  _MESHLOG(mName, "Registered neighbor %s", advAddr->toString().c_str());
+  _MESHLOG(mName, "Registered neighbor %s", pNb->mDev->mName.c_str());
   subscribe(pNb);
   return pNb;
 }
@@ -235,7 +234,7 @@ MeshNeighbor* MeshDevice::getNeighbor(ble_adv_addr_t* advAddr)
 
 void MeshDevice::abortSubscription(MeshNeighbor* pSub)
 {
-  _MESHWARN(mName, "Aborted sub to %s", pSub->mAdvAddr.toString().c_str());
+  _MESHWARN(mName, "Aborted sub to %s", pSub->mDev->mName.c_str());
   for (auto it = mSubscriptions.begin(); it != mSubscriptions.end(); it++)
   {
     if (*it == pSub)
@@ -507,6 +506,7 @@ void MeshDevice::radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool 
       optimizeSubscriptions();
   }
 
+
   if (packet == NULL)
   {
     _MESHWARN(mName, "Packet is NULL");
@@ -514,7 +514,7 @@ void MeshDevice::radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool 
   }
   if (corrupted)
   {
-    _MESHWARN(mName, "Corrupted packet");
+    _MESHWARN(mName, "Corrupted packet from %s", packet->getSender()->getDevice()->mName.c_str());
     return;
   }
 
@@ -540,7 +540,7 @@ void MeshDevice::radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool 
     if (mClusterHead == NULL && !mIsCH)
     {
       setClusterHead(pNb);
-      _MESHLOG(mName, "Elected clusterhead: %s", pNb->mAdvAddr.toString().c_str());
+      _MESHLOG(mName, "Elected clusterhead: %s", pNb->mDev->mName.c_str());
     }
     else if (mClusterHead == pNb)
     {
@@ -661,7 +661,7 @@ void MeshDevice::rxStop(uint32_t timestamp, void* context)
   MeshNeighbor* pSub = (MeshNeighbor*)context;
   mRadio->shortDisable();
   mRadio->disable();
-  _MESHWARN(mName, "RX timed out :(");
+  _MESHWARN(mName, "RX timed out :( missing: %s", pSub->mDev->mName.c_str());
   pSub->mLostPackets++;
   // check if we should abandon the sub
   if (pSub->mLostPackets++ > MESH_MAX_LOSS_COUNT)
