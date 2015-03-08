@@ -24,6 +24,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BLE_common", "BLE_common\BL
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MeshTesting", "MeshTesting\MeshTesting.vcxproj", "{9E840462-B907-4F21-8135-9228F0664CE7}"
+	ProjectSection(ProjectDependencies) = postProject
+		{210087B7-B877-415B-9FB2-5A802F4103C4} = {210087B7-B877-415B-9FB2-5A802F4103C4}
+		{8D06BFE2-6127-42D7-A8EA-9990EDB5F34D} = {8D06BFE2-6127-42D7-A8EA-9990EDB5F34D}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Matplotpp", "MatplotPP\MatplotPP.vcxproj", "{8D06BFE2-6127-42D7-A8EA-9990EDB5F34D}"
 EndProject
@@ -63,8 +67,5 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(Performance) = preSolution
-		HasPerformanceSessions = true
 	EndGlobalSection
 EndGlobal
