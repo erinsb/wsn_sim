@@ -241,10 +241,10 @@ void MeshDevice::abortSubscription(MeshNeighbor* pSub)
     if (*it == pSub)
     {
       MeshNeighbor* pNb = *it;
+      mWSN->removeConnection(this, pNb->mDev);
       pNb->mFollowing = false;
       mTimer->abort(pNb->mRxTimer);
       mSubscriptions.erase(it);
-
       break;
     }
   }
@@ -562,10 +562,6 @@ void MeshDevice::radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool 
       }
     }
   }
-  else if (mClusterHead == NULL && !mIsCH && !mSearching)
-  {
-    electClusterHead();
-  }
   if (pNb == mClusterHead)
   {
     mTimer->reschedule(mBeaconTimerID, mTimer->getTimerTime(packet->mStartTime) + mCHBeaconOffset - MESH_TX_RU_TIME);
@@ -765,8 +761,57 @@ bool MeshDevice::electClusterHead(void)
     setClusterHead(pBestCH);
     return true;
   }
+  else
+  {
+    for (MeshNeighbor* pNb : mSubscriptions)
+    {
+      if (pNb->mClusterHead.isNull())
+      {
+        return false;
+      }
+    }
+    becomeCH();
+    return true;
+  }
   
   return false;
+#else
+  MeshNeighbor* pStrongestCH = NULL;
+  MeshNeighbor* pStrongestNeighbor = NULL;
+  bool hasAvailableNeighbor = false;
+  for (MeshNeighbor* pNb : mSubscriptions)
+  {
+    if (pNb->isClusterHead() && (pStrongestCH == NULL || pNb->mNodeWeight < pStrongestCH->mNodeWeight))
+    {
+      pStrongestCH = pNb;
+    }
+    else if (pNb->mClusterHead.isNull() && (pStrongestNeighbor == NULL || pNb->mNodeWeight < pStrongestNeighbor->mNodeWeight))
+    {
+      pStrongestNeighbor = pNb;
+    }
+    if (pNb->mClusterHead.isNull())
+      hasAvailableNeighbor = true;
+  }
+
+  if (pStrongestCH != NULL)
+  {
+    mClusterHead = pStrongestCH;
+    return true;
+  }
+  else if (pStrongestNeighbor == NULL || pStrongestNeighbor->mNodeWeight > mNodeWeight)
+  {
+    becomeCH();
+    return true;
+  }
+  else if (!hasAvailableNeighbor)
+  {
+    becomeCH();
+    return true;
+  }
+
+
+  return false;
+#endif
 }
 
 void MeshDevice::subscribe(MeshNeighbor* pNb)
