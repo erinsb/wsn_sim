@@ -11,6 +11,7 @@ class Radio;
 
 class RadioPacket
 {
+  friend Radio;
 public:
   RadioPacket(Radio* const sender, uint8_t* data, uint32_t length);
   RadioPacket(const RadioPacket& packet);
