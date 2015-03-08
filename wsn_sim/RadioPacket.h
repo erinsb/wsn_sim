@@ -5,7 +5,7 @@
 #include <iostream>
 #include <iomanip>
 
-#define RADIO_SIGNAL_DECAY (5.0)
+#define RADIO_SIGNAL_DECAY (100.0 / 30.0) // 30 meters
 
 class Radio;
 

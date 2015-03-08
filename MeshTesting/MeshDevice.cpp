@@ -490,7 +490,6 @@ void MeshDevice::radioCallbackTx(RadioPacket* packet)
       }
     }
   }
-  //_MESHLOG(mName, "Beacon!");
 }
 
 void MeshDevice::radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool corrupted)
@@ -518,8 +517,6 @@ void MeshDevice::radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool 
     _MESHWARN(mName, "Corrupted packet");
     return;
   }
-
-  //_MESHLOG(mName, "RX!");
 
   mesh_packet_t* pMeshPacket = (mesh_packet_t*) packet->getContents();
 
@@ -625,7 +622,7 @@ MeshNeighbor* MeshDevice::getLightestNeighbor(void)
   MeshNeighbor* pLightest = NULL;
   for (MeshNeighbor* pNb : mSubscriptions)
   {
-    if ((pLightest == NULL || pNb->mNodeWeight < pLightest->mNodeWeight))
+    if (pLightest == NULL || pNb->mNodeWeight < pLightest->mNodeWeight)
       pLightest = pNb;
   }
 
