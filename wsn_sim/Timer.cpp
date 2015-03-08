@@ -1,4 +1,5 @@
 #include "Timer.h"
+#include "Logger.h"
 
 Timer::Timer(double drift) : mDriftFactor(drift), mDriftAnchor(0), mCurrentTimeout(NULL), mNextTimerIndex(1)
 {
@@ -43,7 +44,7 @@ void Timer::reschedule(timer_t timer, uint32_t timestamp)
   Timeout* pTo = getTimeoutStruct(timer);
 
   if (pTo == NULL)
-    return;
+    _ERROR("Attempted to reschedule non-existent timer");
 
   pTo->mTimestamp = getGlobalTimeAtLocalTime(timestamp);
   getEnvironment()->registerExecution(this, getGlobalTimeAtLocalTime(timestamp));
@@ -76,8 +77,9 @@ void Timer::abort(timer_t timer)
 uint32_t Timer::getExpiration(timer_t timer)
 {
   Timeout* pTo = getTimeoutStruct(timer);
+
   if (pTo == NULL)
-    return 0;
+    _ERROR("Asked for expiration of non-existent timer");
 
   return pTo->mTimestamp;
 }
