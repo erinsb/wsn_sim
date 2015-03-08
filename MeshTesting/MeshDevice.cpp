@@ -728,6 +728,8 @@ void MeshDevice::beaconTimeout(uint32_t timestamp, void* context)
   {
     if (mInSubscriptionRX) // abort it, own beacon is more important
     {
+      _MESHWARN(mName, "Overran subscription");
+      mTimer->abort(mCurrentRXTimer);
       mRadio->shortDisable();
       mRadio->disable();
     }
