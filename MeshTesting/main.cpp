@@ -6,15 +6,15 @@
 #include "RandomLib\Random.hpp"
 #include <Windows.h>
 
-#define DEVICE_COUNT  (1000)
-#define AREA_SIZE     (400.0)
-#define SIM_TIME      (20 * SECONDS)
+#define DEVICE_COUNT  (20)
+#define AREA_SIZE     (30.0)
+#define SIM_TIME      (1 * SECONDS)
 
 int main(void)
 {
   system("mode con:cols=120 lines=10000");
   HWND console = GetConsoleWindow();
-  MoveWindow(console, 0, 0, 800, 1100, true);
+  MoveWindow(console, 0, 0, 800, 1000, true);
 
   SimEnv env;
   WSN wsn;
@@ -42,14 +42,19 @@ int main(void)
   env.run(SIM_TIME);
 
   PowerPlotter plotter;
+  uint32_t orphans = 0;
   for (MeshDevice* pDev : devices)
   {
     //pDev->print();
     //plotter.addDevice(pDev);
+    if (!pDev->hasClusterHead())
+    {
+      orphans++;
+    }
   }
-
-  wsn.exportGraphViz("test1");
-  //plotter.displayGraph(100*MS, 200*MS);
-  //system("pause");
+  printf("Orphans: %d\n", orphans);
+  wsn.exportGraphViz("test_small", AREA_SIZE);
+  //plotter.displayGraph(0, 200*MS);
+  system("pause");
   return 0;
 }

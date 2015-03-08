@@ -8,7 +8,7 @@
 #endif
 
 #ifndef LOG_ENABLE  
-  #define LOG_ENABLE        (0)
+  #define LOG_ENABLE        (1)
 #endif
 
 extern SimEnv* pLoggerSimEnv;
