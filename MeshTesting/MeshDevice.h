@@ -2,24 +2,26 @@
 #include "Device.h"
 #include "RadioPacket.h"
 #include "BlePacket.h"
+#include "MeshWSN.h"
 #include <vector>
 #include <queue>
 #include <stdint.h>
 #include <stdarg.h>
 
-#define MESH_INTERVAL               (100L*MS)
+#define MESH_INTERVAL               (200L*MS)
 #define MESH_MAX_SUBSCRIPTIONS      (8)
 #define MESH_OPTIMAL_SUBSCRIPTIONS  (4)
 #define MESH_MAX_LOSS_COUNT         (6)
-#define MESH_MAX_CLOCK_DRIFT        (500.0 * PPM)
-#define MESH_MAX_CLOCK_DRIFT_TWO_SIDED  (MESH_MAX_CLOCK_DRIFT * 2.2)
-#define MESH_CH_OFFSET_US(offs)     (625 * ((uint32_t) offs)
-#define MESH_CH_BEACON_MARGIN       (1000)
+#define MESH_MAX_CLOCK_DRIFT        (1000.0 * PPM)
+#define MESH_MAX_CLOCK_DRIFT_TWO_SIDED  (MESH_MAX_CLOCK_DRIFT * 2.1)
+#define MESH_CH_OFFSET_US(offs)     (625 * ((timestamp_t) offs))
+#define MESH_CH_OFFSET_SLOTS(offs)  ((timestamp_t) offs / 625)
+#define MESH_CH_BEACON_MARGIN       (500)
 #define MESH_MAX_ROUTES             (10)
 #define MESH_UNKNOWN_DIST           (UINT32_MAX)
-#define MESH_RX_RU_TIME             (485L)       
+#define MESH_RX_RU_TIME             (150L)       
 #define MESH_TX_RU_TIME             (RADIO_DEFAULT_TURNAROUND)       
-#define MESH_RX_LISTEN_TIME         (500 + MESH_RX_RU_TIME)
+#define MESH_RX_LISTEN_TIME         (380 + MESH_RX_RU_TIME)
 #define MESH_ROUTE_TIMEOUT          (1*MINUTES) //time before a route is deemed invalid
 #define MESH_ACCESS_ADDR            (0xC0221E55)
 #define MESH_MESSAGE_ID_CACHE_SIZE  (16)
@@ -31,6 +33,7 @@
 #define MESH_PACKET_OVERHEAD_BROADCAST (BLE_ADV_ADDR_LEN + sizeof(uint16_t))
 #define MESH_PACKET_OVERHEAD_NBNOT     (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint8_t))
 #define MESH_PACKET_OVERHEAD_DEFAULT   (BLE_ADV_ADDR_LEN + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t))
+#define MESH_PACKET_OVERHEAD_SLEEPING  (BLE_ADV_ADDR_LEN + sizeof(uint16_t))
 #define MESH_PACKET_OVERHEAD_DIST_REQ  (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint16_t))
 #define MESH_PACKET_OVERHEAD_DIST_RSP  (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint32_t))
 
@@ -39,6 +42,7 @@
 #define _MESHERROR(name, str, ...) _ERROR("[%s] " str, name.c_str(), __VA_ARGS__)
 
 class MeshDevice;
+class MeshWSN;
 
 //mesh packet, based on ble adv
 #pragma pack(push, 1)
@@ -46,6 +50,8 @@ typedef enum
 {
   MESH_ADV_TYPE_RAW = 0x50,
   MESH_ADV_TYPE_DEFAULT,                // fallback packet for when packet queue is empty
+  MESH_ADV_TYPE_SLEEPING,               // node is falling asleep
+  MESH_ADV_TYPE_WAKEUP,                 // request to wake up nodes
   MESH_ADV_TYPE_NEIGHBOR_NOTIFICATION,  // emitted when a new neighbor is discovered
   MESH_ADV_TYPE_NEIGHBOR_REQUEST,       // asking for information about a neighbor's neighbor. Triggers neighbor notifications
   MESH_ADV_TYPE_ACK,                    // confirming reception of value
@@ -81,6 +87,15 @@ typedef struct
           uint8_t nbCount;            // number of other nodes this one is subscribed to
           uint8_t nodeWeight;         // based on power supply and stability. Lower is better
         } default;
+        struct
+        {
+          ble_adv_addr_t clusterAddr; // address of cluster head
+          uint16_t offsetFromCH;      // number of 625us slots offset
+        } sleeping;
+        struct
+        {
+          ble_adv_addr_t clusterAddr; // address of cluster head of cluster to wake up
+        } wakeup;
         struct
         {
           ble_adv_addr_t neighbor;
@@ -142,7 +157,7 @@ typedef struct
 typedef struct
 {
   ble_adv_addr_t destination;
-  uint32_t timeStamp;
+  timestamp_t timeStamp;
   uint32_t distance;
 } route_entry_t;
 
@@ -163,40 +178,47 @@ class MeshNeighbor
 public:
   MeshNeighbor(ble_adv_addr_t* addr);
 
-  void receivedBeacon(uint32_t rxTime, mesh_packet_t* beacon, uint32_t channel);
+  void receivedBeacon(timestamp_t rxTime, mesh_packet_t* beacon, uint32_t channel, uint8_t signalStrength);
 
   bool isClusterHead(void);
 
   uint8_t getNodeWeight(void) { return mNodeWeight; }
-  uint32_t getLastSyncTime(void) { return mLastSyncTime; }
-  uint32_t getNextBeaconTime(uint32_t timeNow);
+  timestamp_t getNextBeaconTime(timestamp_t timeNow);
   uint32_t getSubscriptionScore(void);
-  uint32_t getNextChannel(void);
+  uint32_t getChannel(timestamp_t timestamp);
+  uint32_t getLostPacketCount(timestamp_t timestamp);
     
   ble_adv_addr_t mAdvAddr;
   bool mFollowing;
 private:
   ble_adv_addr_t mClusterHead;
 
-  uint32_t mLastSyncTime;
-  uint32_t mLastBeaconTime;
+  //uint32_t mLastSyncTime;
+  timestamp_t mLastBeaconTime;
   uint32_t mNbCount;
   uint8_t mNodeWeight;
   uint32_t mBeaconCount;
-  uint32_t mBeaconInterval;
-  uint32_t mLostPackets;
+  timestamp_t mBeaconInterval;
   timer_t mRxTimer;
+  uint8_t mSignalStrength;
   uint32_t mLastChannel;
+  uint8_t mLazyInterval;
+  timestamp_t mBeaconOffset;
+  timestamp_t mInterval;
+
   MeshDevice* mDev; // for debugging
+  bool mDebugTag;
 };
 
 
 class MeshDevice : public Device
 {
+  friend MeshWSN;
 public:
   MeshDevice(std::string name = "mesh", double x = 0.0, double y = 0.0);
   ~MeshDevice();
   void setAdvAddress(uint64_t addr);
+  ble_adv_addr_t* getAdvAddress(void) { return &mMyAddr; }
 
   void start(void);
   void kill(void);
@@ -207,7 +229,7 @@ public:
   void startBeaconing(void);
   void stopBeaconing(void);
 
-  MeshNeighbor* registerNeighbor(ble_adv_addr_t* advAddr, uint32_t rxTime, mesh_packet_t* pPacket = NULL, Device* pDev = NULL);
+  MeshNeighbor* registerNeighbor(ble_adv_addr_t* advAddr, timestamp_t rxTime, mesh_packet_t* pPacket = NULL, uint8_t signalStrength = 100, Device* pDev = NULL);
   MeshNeighbor* getNeighbor(ble_adv_addr_t* advAddr);
   void abortSubscription(MeshNeighbor* pSub);
   bool isSubscribedTo(ble_adv_addr_t* addr);
@@ -226,6 +248,7 @@ public:
     );
   void transmitNeighborNotification(MeshNeighbor* pNb);
   void transmitRepeat(mesh_packet_t* pPacket, bool overWriteAdvAddr = true);
+  void transmitSleep(void);
 
   bool hasMessageID(msgID_t messageID) { return mMsgIDcache.hasID(messageID); }
     
@@ -238,7 +261,9 @@ public:
   bool hasRouteTo(ble_adv_addr_t* addr);
   uint32_t getDistanceTo(ble_adv_addr_t* addr);
   
-  void setCHBeaconOffset(uint32_t beaconOffset);
+  void setCHBeaconOffset(timestamp_t beaconOffset);
+  void subscribe(MeshNeighbor* pNb);
+  void resubscribe(MeshNeighbor* pNb);
   
   void print(void);
 
@@ -250,18 +275,23 @@ private:
   std::queue<mesh_packet_t*> mPacketQueue;
   std::vector<MeshNeighbor*> mSubscriptions;
   mesh_packet_t mDefaultPacket;
+  MeshNeighbor* mCurrentSub;
   MeshNeighbor* mClusterHead;
   bool mSearching;
   bool mInSubscriptionRX;
   bool mInBeaconTX;
   bool mIsCH;
+  bool mClusterSleeps;
+  bool mBeaconing;
   ble_adv_addr_t mMyAddr;
   uint8_t mNodeWeight;
-  uint32_t mCHBeaconOffset;
-  uint32_t mLastBeaconTime;
+  timestamp_t mCHBeaconOffset;
+  timestamp_t mLastBeaconTime;
+  uint32_t mLastBeaconChannel;
+  timestamp_t mFirstBeaconTX;
   uint32_t mBeaconCount;
-  timer_t mBeaconTimerID;
-  timer_t mCurrentRXTimer;
+  volatile timer_t mBeaconTimerID;
+  volatile timer_t mCurrentRXTimer;
   msgIDcache_t mMsgIDcache;
 
   virtual void radioCallbackTx(RadioPacket* packet);
@@ -271,13 +301,15 @@ private:
   MeshNeighbor* getMostRedundantSubscription(void);
   MeshNeighbor* getLightestNeighbor(void);
   void resync(MeshNeighbor* pNb);
-  void subscriptionTimeout(uint32_t timestamp, void* context);
-  void rxStop(uint32_t timestamp, void* context);
-  void beaconTimeout(uint32_t timestamp, void* context);
+  void subscriptionTimeout(timestamp_t timestamp, void* context);
+  void rxStop(timestamp_t timestamp, void* context);
+  void beaconTimeout(timestamp_t timestamp, void* context);
   bool electClusterHead(void);
-  void subscribe(MeshNeighbor* pNb);
   void processPacket(mesh_packet_t* pMeshPacket);
   void becomeCH(void);
+  void lostPacket(MeshNeighbor* pNb);
+  void sleep(void);
+  void prepareBeacon(void);
 };
 
   
