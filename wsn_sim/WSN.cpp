@@ -59,7 +59,7 @@ void WSN::endTransmit(packetHandle_t packetHandle)
   for (PacketReceiver* pRecv : receivers)
   {
     radios.push_back(pRecv->mRadio);
-    corrupted.push_back(pRecv->packetIsCorrupted(pPacket) && (mRand.Float() > mDropRate));
+    corrupted.push_back(pRecv->packetIsCorrupted(pPacket) || (mRand.Float() < mDropRate));
   }
 
   for (uint8_t i = 0; i < radios.size(); ++i)
@@ -78,7 +78,8 @@ void WSN::endTransmit(packetHandle_t packetHandle)
         pPacket->getMaxDistance()));
     }
 
-   pRadio->receivePacket(pPacket, sigStrength, corrupted[i]); // will cause radio to stop RX
+    if (sigStrength > 0)
+      pRadio->receivePacket(pPacket, sigStrength, corrupted[i]); // will cause radio to stop RX
   }
 }
 
@@ -257,12 +258,13 @@ void WSN::exportGraphViz(std::string filename, uint32_t area_diameter, double sp
   file.open(filename);
   double areaSqrt = sqrt(area_diameter);
   double areaSqrt2 = sqrt(areaSqrt);
+  double areaThrt = pow(area_diameter, 1.0 / 3.0);
 
   file << "strict digraph {\n";
   file << "\tnode [width = \"" << GRAPHVIZ_SCALING * areaSqrt2 << 
     "\" height =\"" << GRAPHVIZ_SCALING * areaSqrt2 << "\" label=\"\", fixedsize=false,";
-  file << "fontsize = " << areaSqrt << ", fontname = \"Consolas\"]\n";
-  file << "\tgraph [dpi=" << min(uint32_t(100 * (50.0 / areaSqrt)), 1000) << "]\n\n";
+  file << "fontsize = " << 2.0 * areaThrt << ", fontname = \"Consolas\"]\n";
+  file << "\tgraph [dpi=" << min(uint32_t(100 * (10.0 / areaSqrt2)), 1000) << "]\n\n";
   
 
   for (uint32_t i = 0; i < mDevices.size(); ++i)
@@ -393,6 +395,7 @@ std::vector<WSN::PacketReceiver*> WSN::getPacketReceiversInRange(RadioPacket* pP
   for (PacketReceiver& receiver : mReceivers)
   {
     if (pPacket->getSender() != receiver.mRadio &&
+      pPacket->mChannel == receiver.mChannel &&
       pPacket->getSender()->getDevice()->getDistanceTo(*receiver.mRadio->getDevice()) < pPacket->getMaxDistance())
     {
       resultVector.push_back(&receiver);
