@@ -21,9 +21,15 @@
     <ClCompile Include="MeshDevice.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="MeshWSN.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MeshDevice.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MeshWSN.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
