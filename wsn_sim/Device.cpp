@@ -2,7 +2,7 @@
 #include "Radio.h"
 #include <math.h>
 
-Device::Device(double x, double y) : mName("Device")
+Device::Device(double x, double y) : mName("Device"), mExtraPowerUsagePart(0.0), mBackgroundPowerUsage(0.0)
 {
   pos.x = x;
   pos.y = y;
@@ -69,7 +69,7 @@ std::vector<double> Device::getPowerUsage(timestamp_t firstSample, timestamp_t l
   if (powerUsage.size() == 0)
   {
     for (; time <= lastSample; ++time)
-      resultVector.push_back(0.0);
+      resultVector.push_back(mBackgroundPowerUsage);
   }
 
   double usageNow = 0.0;
@@ -77,31 +77,47 @@ std::vector<double> Device::getPowerUsage(timestamp_t firstSample, timestamp_t l
   for (powerEvent_t evt : powerUsage)
   {
     for (; time < evt.timestamp && time <= lastSample; ++time)
-      resultVector.push_back(usageNow);
+      resultVector.push_back(usageNow + mBackgroundPowerUsage);
     usageNow = evt.power_mA;
   }
   for (; time <= lastSample; ++time)
-    resultVector.push_back(usageNow);
+    resultVector.push_back(usageNow + mBackgroundPowerUsage);
 
   return resultVector;
 }
 
-double Device::getPowerUsageAvg(uint32_t firstSample, uint32_t lastSample) const
-{
-  auto usage = getPowerUsage(firstSample, lastSample);
-  uint32_t size = usage.size();
-  double total = 0.0;
-  for (double mA : usage)
-    total += mA;
-  return total / size;
+double Device::getPowerUsageAvg(timestamp_t firstSample, timestamp_t lastSample, double paukert) const
+{ 
+  double sum = 0.0;
+  double current = 0.0;
+  timestamp_t lastChange = firstSample;
+  for (auto it = powerUsage.begin(); it != powerUsage.end(); it++)
+  {
+    if (it->timestamp > lastSample)
+    {
+      sum += (lastSample - lastChange) * current;
+      break;
+    }
+    if (it->timestamp > firstSample)
+    {
+      sum += (it->timestamp - lastChange) * current;
+      lastChange = it->timestamp;
+    }
+    current = pow(it->power_mA, paukert);
+  }
+
+  if (powerUsage.back().timestamp < lastSample)
+    lastSample = powerUsage.back().timestamp;
+
+  return (1.0 + mExtraPowerUsagePart) * sum / (double(lastSample - firstSample)) + mBackgroundPowerUsage; // nano-Ampere
 }
 
-void Device::plotPower(uint32_t startTime, uint32_t endTime)
+void Device::plotPower(timestamp_t startTime, timestamp_t endTime)
 {
   PowerPlotter().displayGraph(startTime, endTime, this);
 }
 
-void Device::step(uint32_t timestamp)
+void Device::step(timestamp_t timestamp)
 {
 
 }

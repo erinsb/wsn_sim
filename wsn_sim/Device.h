@@ -59,6 +59,8 @@ protected:
   Timer* mTimer;
   WSN* mWSN;
   device_tag_t mDevTag; // for graph output
+  double mExtraPowerUsagePart;
+  double mBackgroundPowerUsage;
   RandomLib::Random mRand;
   virtual void radioCallbackTx(RadioPacket* packet){};
   virtual void radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool corrupted){};
