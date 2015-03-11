@@ -98,6 +98,11 @@ void Radio::shortDisable(void)
   mShort = SHORT_DISABLED;
 }
 
+bool Radio::rxInProgress(void)
+{
+  return (mState == RADIO_STATE_RX && mWSN->isReceivingPackets(this));
+}
+
 void Radio::receivePacket(RadioPacket* pPacket, uint8_t rx_strength, bool corrupted)
 {
   mWSN->removeReceiver(this);

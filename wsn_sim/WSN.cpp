@@ -167,6 +167,18 @@ bool WSN::hasReceiver(Radio* radio)
   return false;
 }
 
+bool WSN::isReceivingPackets(Radio* radio)
+{
+  for (PacketReceiver& recv : mReceivers)
+  {
+    if (recv.mRadio == radio)
+    {
+      return (recv.mPackets.size() > 0);
+    }
+  }
+
+  return false;
+}
 
 void WSN::addConnection(Device* first, Device* second, bool strong)
 {

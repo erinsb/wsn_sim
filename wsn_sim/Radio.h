@@ -61,9 +61,10 @@ public:
 
   state_t getState(void) const { return mState; }
   uint8_t getSignalStrength(void) const { return mSigStrength; }
-  uint32_t getTxTime(uint32_t packet_length) 
+  bool rxInProgress(void);
+  timestamp_t getTxTime(uint32_t packet_length)
   { 
-    return packet_length * 8 / mBitrate; 
+    return timestamp_t(packet_length * 8 / mBitrate);
   }
 
   double getX(void) { return mDevice->pos.x; }

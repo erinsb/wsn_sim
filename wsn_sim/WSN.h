@@ -24,10 +24,12 @@ public:
   void addReceiver(Radio* radio);
   bool removeReceiver(Radio* radio);
   bool hasReceiver(Radio* radio);
+  bool isReceivingPackets(Radio* radio);
 
   void setDropRate(double dropRate) { mDropRate = dropRate; }
 
   void addDevice(Device* device);
+  uint32_t getDeviceCount(void) { return mDevices.size(); }
 
   RadioPacket* getRadioPacket(packetHandle_t handle) const;
   std::vector<RadioPacket*> getPacketsInFlight(void) const;
