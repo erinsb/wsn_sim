@@ -8,6 +8,8 @@
 #endif
 #define LOG_ENABLE  (0)
 
+#define RADIO_SAME_STATE_SWITCH_TIME  (10)
+
 const double Radio::powerProfile[] =
 {
   RADIO_POWER_RX,
@@ -154,6 +156,8 @@ void Radio::step(uint32_t timestamp)
 
 void Radio::shortToNextState(void)
 {
+  state_t prevState = mState;
+
   if (mShort == SHORT_DISABLED)
   {
     setState(RADIO_STATE_IDLE);
@@ -170,7 +174,16 @@ void Radio::shortToNextState(void)
       setState(RADIO_STATE_RAMPUP_TX);
       break;
     }
-    wait(mTifs_us);
+    // don't go all the way around when radio just needs to go back to active
+    if ((prevState == RADIO_STATE_RX && mState == RADIO_STATE_RAMPUP_RX) ||
+      (prevState == RADIO_STATE_TX && mState == RADIO_STATE_RAMPUP_TX))
+    {
+      wait(RADIO_SAME_STATE_SWITCH_TIME);
+    }
+    else
+    {
+      wait(mTifs_us);
+    }
   }
 }
 
