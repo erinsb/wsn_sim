@@ -181,6 +181,11 @@ void PowerPlotter::DISPLAY(void)
     subplot(mDevices.size(), 1, i + 1);
     this->ylabel(mDevices[i]->mName);
     plotDevice(mDevices[i]);
+    if (i == 0)
+      ticklabel(1);
+    else
+      ticklabel(0);
+
   }
 }
 

@@ -16,14 +16,6 @@ Version:0.3.11
 #include "gl2ps.h"
 #include "GL\glut.h"
 
-#ifndef IMPORT
-#define CLASS_DECLSPEC    //__declspec(dllexport)
-#else
-#define CLASS_DECLSPEC    //__declspec(dllimport)
-#endif
-
-
-
 using namespace std;
 
 
@@ -548,13 +540,13 @@ class MatPlot{///
     void vertex(double x,double y,double z);
 
     int line();
-    int line(dvec& x,dvec& y);
-    int line(dvec& x, dvec& y, dvec& z);
+    int line(dvec x,dvec y);
+    int line(dvec x, dvec y, dvec z);
     //line(X,Y)
     //line(X,Y,Z)
 
-    int plot(dvec& y);
-    int plot(dvec& x,dvec& y);    
+    int plot(dvec y);
+    int plot(dvec x,dvec y);    
     //int plot(dmat Y);
     //int plot(dvec x,dmat Y);
     //int plot(dmat X,dmat Y);

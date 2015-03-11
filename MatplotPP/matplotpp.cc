@@ -98,6 +98,7 @@ Text::Text(int id_){
 Layer::Layer(int id_){
   id = id_;
   Children.clear();
+  Visible = 1;
 }
 /// Patch
 
@@ -509,7 +510,9 @@ void MatPlot::display_figure(){
 
       if (tObj == tLayer){
         cfr = &vLayer[iObj];
-        if (cfr->Visible){ display_layer(); }
+        if (cfr->Visible){ 
+          display_layer(); 
+        }
       }
     }
     /*
@@ -948,7 +951,7 @@ void MatPlot::display_axes_2d(){
 
   //YLabel
   num_char = ca->YLabel.length();
-  ptext(l, b + h + offset,
+  ptext(l - (float)(num_char + 30) * char_w / window_w / 2.0, b + h / 2.0,
     ca->YLabel);
 
   // Viewport Axes (VpA) for drawing lines and surfaces
@@ -1443,23 +1446,16 @@ void MatPlot::line_config(){
     if (ca->zmax < z){ ca->zmax = z; }
   }
 }
-int MatPlot::line(dvec& x, dvec& y){
+int MatPlot::line(dvec x, dvec y){
   int h = line();
   if (cfr->Visible){
-    // copy elements by value
-    cl->XData.clear();
-    cl->YData.clear();
-    cl->XData.resize(x.size());
-    cl->YData.resize(y.size());
-    for (int i = 0; i < x.size(); ++i)
-      cl->XData[i] = x[i];
-    for (int i = 0; i < y.size(); ++i)
-      cl->YData[i] = y[i];
+    cl->XData = x;
+    cl->YData = y;
     line_config();
   }
   return h;
 }
-int MatPlot::line(dvec& x, dvec& y, dvec& z){
+int MatPlot::line(dvec x, dvec y, dvec z){
   int h = line();
   if (cfr->Visible){
     cl->XData = x;
@@ -1483,14 +1479,14 @@ void  MatPlot::vertex(double x, double y){
   }
 }
 /// plot, semilogx, semilogy, loglog
-int MatPlot::plot(dvec& y){
+int MatPlot::plot(dvec y){
   int n = y.size();
   dvec x;
   x.resize(n);
   for (int i = 0; i < n; ++i){ x[i] = 1.0*i / (n - 1); }
   return line(x, y);
 }
-int MatPlot::plot(dvec& x, dvec& y){
+int MatPlot::plot(dvec x, dvec y){
   return line(x, y);
 }
 int MatPlot::plot(valarray<double> x, valarray<double> y){
