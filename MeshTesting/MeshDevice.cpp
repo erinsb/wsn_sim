@@ -1,12 +1,41 @@
 #include "MeshDevice.h"
+#include "Timer.h"
 #include "BlePacket.h"
 #include "Radio.h"
 #include "RadioPacket.h"
 #include "Logger.h"
+#include "MeshWSN.h"
 
-#define SEARCHLIGHT_SLOT (10000)
+#define SEARCHLIGHT_SLOT  (10000)
+#define FIRST_CHANNEL     (37)
+#define LAST_CHANNEL      (39)
 
 using namespace std::placeholders;
+
+
+static uint32_t getNextChannel(uint32_t lastChannel, uint8_t seed, uint8_t lostBeacons = 0)
+{
+  while (lostBeacons-- > 0)
+  {
+    lastChannel = getNextChannel(lastChannel, seed, 0);
+  }
+  if (seed & 0x01)
+  {
+    int32_t ch = lastChannel + 1;
+    while (ch > LAST_CHANNEL)
+      ch -= (LAST_CHANNEL - FIRST_CHANNEL);
+    return ch;
+  }
+  else
+  {
+    int32_t ch = lastChannel - 1;
+    while (ch < FIRST_CHANNEL)
+      ch += (LAST_CHANNEL - FIRST_CHANNEL);
+    return ch;
+  }
+  //uint32_t add = (seed % (LAST_CHANNEL - FIRST_CHANNEL)) + 1;
+  //return (lastChannel + (lostBeacons + 1) * add - FIRST_CHANNEL) % (LAST_CHANNEL - FIRST_CHANNEL + 1) + FIRST_CHANNEL;
+}
 
 uint32_t mesh_packet_t::getPayloadLength(void)
 {
@@ -104,12 +133,17 @@ uint32_t MeshNeighbor::getNextBeaconTime(uint32_t timeNow)
 
 uint32_t MeshNeighbor::getSubscriptionScore(void)
 {
-  return (MESH_MAX_SUBSCRIPTIONS - mNbCount);
+  return (255 - mSignalStrength);
 }
 
-uint32_t MeshNeighbor::getNextChannel(void)
+uint32_t MeshNeighbor::getChannel(timestamp_t timestamp)
 {
-  return (mLastChannel + ((mLostPackets + 1) * (1 + mAdvAddr.arr[0]) % 3) - 37) % 3 + 37;
+  return getNextChannel(mLastChannel, mAdvAddr.arr[0], getLostPacketCount(timestamp));
+}
+
+uint32_t MeshNeighbor::getLostPacketCount(timestamp_t timestamp)
+{
+  return (timestamp - mLastBeaconTime - MESH_INTERVAL / 2) / MESH_INTERVAL;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -183,7 +217,7 @@ void MeshDevice::startSearch(void)
 
   mSearching = true;
 
-  mRadio->setChannel(37);
+  mRadio->setChannel(FIRST_CHANNEL);
   mRadio->shortToRx();
   mRadio->receive();
 
@@ -199,22 +233,29 @@ void MeshDevice::stopSearch(void)
 void MeshDevice::startBeaconing(void)
 {
   // randomized offset
-  mBeaconTimerID = mTimer->orderPeriodic(mCHBeaconOffset, MESH_INTERVAL, MEMBER_TIMEOUT(MeshDevice::beaconTimeout));
+  if (mBeaconCount == 0)
+    mLastBeaconChannel = FIRST_CHANNEL;
+  mBeaconCount = 0;
+  if (mClusterHead != NULL)
+    mBeaconTimerID = mTimer->orderPeriodic(mClusterHead->getNextBeaconTime(mTimer->getTimestamp()) + mCHBeaconOffset, MESH_INTERVAL + (timestamp_t)mMyAddr.arr[1] * 625ULL, MEMBER_TIMEOUT(MeshDevice::beaconTimeout));
+  else
+    mBeaconTimerID = mTimer->orderPeriodic(mTimer->getTimestamp() + mCHBeaconOffset, MESH_INTERVAL + (timestamp_t)mMyAddr.arr[1] * 625ULL, MEMBER_TIMEOUT(MeshDevice::beaconTimeout));
+  mBeaconing = true;
 }
 
 void MeshDevice::stopBeaconing(void)
 {
+  mBeaconing = false;
   mTimer->abort(mBeaconTimerID);
 }
 
-MeshNeighbor* MeshDevice::registerNeighbor(ble_adv_addr_t* advAddr, uint32_t rxTime, mesh_packet_t* pPacket, Device* pDev)
+MeshNeighbor* MeshDevice::registerNeighbor(ble_adv_addr_t* advAddr, timestamp_t rxTime, mesh_packet_t* pPacket, uint8_t signalStrength, Device* pDev)
 {
   MeshNeighbor* pNb = new MeshNeighbor(advAddr);
   mNeighbors.push_back(pNb);
   pNb->mDev = (MeshDevice*) pDev;
 
-  pNb->receivedBeacon(rxTime, pPacket, mRadio->getChannel());
-  _MESHLOG(mName, "Registered neighbor %s", pNb->mDev->mName.c_str());
+  pNb->receivedBeacon(rxTime, pPacket, mRadio->getChannel(), signalStrength);
   subscribe(pNb);
   return pNb;
 }
@@ -709,13 +750,14 @@ void MeshDevice::beaconTimeout(uint32_t timestamp, void* context)
     }
     mDefaultPacket.payload.str.payload.default.nbCount = mSubscriptions.size();
     mDefaultPacket.payload.str.payload.default.nodeWeight = mNodeWeight;
-    mDefaultPacket.payload.str.payload.default.offsetFromCH = mCHBeaconOffset;
+    mDefaultPacket.payload.str.payload.default.offsetFromCH = MESH_CH_OFFSET_SLOTS(mCHBeaconOffset);
     mDefaultPacket.payload.str.adv_len = MESH_PACKET_OVERHEAD_DEFAULT;
 
     mRadio->setPacket((uint8_t*)&mDefaultPacket, mDefaultPacket.header.length + MESH_PACKET_OVERHEAD - 4);
   }
-
-  mRadio->setChannel(37 + ((1 + (mMyAddr.arr[0] % 3)) * mBeaconCount) % 3);
+  
+  mLastBeaconChannel = (mLastBeaconTime > 0)? getNextChannel(mLastBeaconChannel, mMyAddr.arr[0]) : FIRST_CHANNEL;
+  mRadio->setChannel(mLastBeaconChannel);
 
   if (mSearching)
   {
