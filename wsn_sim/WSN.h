@@ -40,9 +40,9 @@ public:
   std::vector<const Device*> getConnections(const Device* dev);
   void exportGraphViz(std::string filename, uint32_t area_diameter = 100, double spacing = 1.0);
 
-  virtual void step(uint32_t timestamp);
+  virtual void step(timestamp_t timestamp);
 
-private:
+protected:
   typedef struct
   {
     Device *pFirst, *pSecond;
@@ -64,7 +64,7 @@ private:
     bool packetIsCorrupted(RadioPacket* pPacket) const;
 
     Radio* mRadio;
-    uint32_t mStartTime;
+    timestamp_t mStartTime;
     uint32_t mChannel;
     std::vector<RadioPacket*> mPackets;
   };

@@ -6,10 +6,10 @@
 
 #define USE_THREADS   (0)
 #define THREAD_COUNT  (4)
-#define MS            (1000)
-#define SECONDS       (1000 * MS)
-#define MINUTES       (60 * SECONDS)
-#define HOURS         (60 * MINUTES)
+#define MS            (1000ULL)
+#define SECONDS       (1000ULL * MS)
+#define MINUTES       (60ULL * SECONDS)
+#define HOURS         (60ULL * MINUTES)
 
 class Runnable;
 
@@ -28,23 +28,23 @@ public:
   SimEnv();
   ~SimEnv();
 
-  uint32_t getTimestamp(void){ return mTime; }
+  timestamp_t getTimestamp(void){ return mTime; }
   uint32_t numberOfRunnables(void) const;
   void attachRunnable(Runnable* runnable);
-  void setReportRate(uint32_t rate) { mReportRate = rate; };
+  void setReportRate(timestamp_t rate) { mReportRate = rate; };
   void stop(void) { mRunning = false; }
 
-  void run(uint32_t stopTime = UINT32_MAX, uint32_t deltaTime = 1);
-  void registerExecution(Runnable* executor, uint32_t timestamp);
+  void run(timestamp_t stopTime = UINT32_MAX, timestamp_t deltaTime = 1);
+  void registerExecution(Runnable* executor, timestamp_t timestamp);
 
 private:
   typedef struct
   {
     Runnable* pRunnable;
-    uint32_t timestamp;
+    timestamp_t timestamp;
   } execution_t;
 
-  uint32_t mTime;
+  timestamp_t mTime;
 #if USE_THREADS
   std::vector<Runnable*> mTempRunnables;
   SimThread* mThreads[THREAD_COUNT];
@@ -56,12 +56,12 @@ private:
 #endif
   bool mRunning = true;
   std::vector<execution_t> mExecutionList;
-  uint32_t mNextExecution = 0;
+  timestamp_t mNextExecution = 0;
   bool mExecutionListInvalidated = false;
-  uint32_t mReportRate;
-  uint32_t mLastReport;
+  timestamp_t mReportRate;
+  timestamp_t mLastReport;
 
-  void step(uint32_t stopTime);
+  void step(timestamp_t stopTime);
 };
 
 

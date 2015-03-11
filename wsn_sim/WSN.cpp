@@ -117,7 +117,7 @@ RadioPacket* WSN::getRadioPacket(packetHandle_t handle) const
 std::vector<RadioPacket*> WSN::getPacketsInFlight(void) const
 {
   std::vector<RadioPacket*> resultVector;
-  uint32_t now = getEnvironment()->getTimestamp();
+  timestamp_t now = getEnvironment()->getTimestamp();
 
   for (RadioPacket* p : mPackets)
   { 
@@ -343,7 +343,7 @@ void WSN::exportGraphViz(std::string filename, uint32_t area_diameter, double sp
   system(callstr.c_str());
 }
 
-void WSN::step(uint32_t timestamp)
+void WSN::step(timestamp_t timestamp)
 {
 
 }

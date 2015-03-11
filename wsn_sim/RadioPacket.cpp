@@ -7,18 +7,20 @@
 
 RadioPacket::RadioPacket(Radio* const sender, uint8_t* data, uint32_t length) :
   mSender(sender), 
-  mLength(length), 
-  p_mEnvironment(sender->getEnvironment())
+  mLength(length)
 {
   mData = new uint8_t[length];
   memcpy_s(mData, length, data, length);
-  mStartTime = p_mEnvironment->getTimestamp();  
+  mStartTime = 0;
   mEndTime = UINT32_MAX; //yet to be determined
   mSignalStrength = sender->getSignalStrength();
   mChannel = sender->getChannel();
 }
 
-RadioPacket::RadioPacket(const RadioPacket& packet) : RadioPacket(packet.mSender, packet.mData, packet.mLength){}
+RadioPacket::RadioPacket(const RadioPacket& packet) : RadioPacket(packet.mSender, packet.mData, packet.mLength)
+{
+  mStartTime = packet.mStartTime;
+}
 
 RadioPacket::RadioPacket(void) : 
   mSender(NULL), 
@@ -74,7 +76,6 @@ RadioPacket& RadioPacket::operator=(RadioPacket& rhs)
   this->mEndTime = rhs.mEndTime;
   this->mSender = rhs.mSender;
   this->mSignalStrength = rhs.mSignalStrength;
-  this->p_mEnvironment = rhs.p_mEnvironment;
   
   this->mData = new uint8_t[rhs.mLength];
   memcpy_s(this->mData, rhs.mLength, rhs.mData, rhs.mLength);

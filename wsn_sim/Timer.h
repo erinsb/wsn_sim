@@ -1,27 +1,25 @@
 #pragma once
 #include "Runnable.h"
 #include <functional>
+#include <stdint.h>
 
 #define PPM   (1.0 / 1000000.0)
 #define MEMBER_TIMEOUT(func)   std::bind(&func, this, std::placeholders::_1, std::placeholders::_2)
 #define TIMER_DRIFT_MARGIN  (2)
 
-typedef uint32_t timer_t;
+typedef uint32_t timer_t; // handle
+
+class Timer;
 
 class Timeout
 {
 public:
-  Timeout(uint32_t timestamp, timer_t id, const std::function<void(uint32_t, void*)> callback, void* context) : mTimestamp(timestamp), mCallback(callback), mContext(context), mInterval(0), mTimerID(id) {}
+  Timeout(timestamp_t timestamp, timer_t id, const std::function<void(timestamp_t, void*)> callback, void* context) : mTimestamp(timestamp), mCallback(callback), mContext(context), mInterval(0), mTimerID(id) {}
 
-  void fire(void) 
-  { 
-    if (mInterval == 0)
-      invalid = true;
-    mCallback(mTimestamp, mContext); 
-  }
-  const std::function<void(uint32_t, void*)> mCallback;
-  uint32_t mTimestamp;
-  uint32_t mInterval;
+  void fire(Timer* pTimer);
+  const std::function<void(timestamp_t, void*)> mCallback;
+  timestamp_t mTimestamp;
+  timestamp_t mInterval;
   bool invalid = false;
   timer_t mTimerID;
   void* mContext;
@@ -37,23 +35,23 @@ public:
   double getDriftFactor(void) { return mDriftFactor; }
   void resetDrift(void);
 
-  timer_t orderAt(uint32_t timestamp, const std::function<void(uint32_t, void*)> callback, void* context = NULL);
-  timer_t orderRelative(uint32_t deltaTime, const std::function<void(uint32_t, void*)> callback, void* context = NULL);
-  timer_t orderPeriodic(uint32_t firstTimeout, uint32_t interval, const std::function<void(uint32_t, void*)> callback, void* context = NULL);
-  void reschedule(timer_t timer, uint32_t timestamp);
+  timer_t orderAt(timestamp_t timestamp, const std::function<void(timestamp_t, void*)> callback, void* context = NULL);
+  timer_t orderRelative(timestamp_t deltaTime, const std::function<void(timestamp_t, void*)> callback, void* context = NULL);
+  timer_t orderPeriodic(timestamp_t firstTimeout, timestamp_t interval, const std::function<void(timestamp_t, void*)> callback, void* context = NULL);
+  void reschedule(timer_t timer, timestamp_t timestamp);
   void abort(timer_t timer);
-  uint32_t getExpiration(timer_t timer);
+  timestamp_t getExpiration(timer_t timer);
   void setContext(timer_t timer, void* context);
 
-  uint32_t getTimestamp(void);
+  timestamp_t getTimestamp(void);
 
-  virtual void step(uint32_t timestamp);
+  virtual void step(timestamp_t timestamp);
 
-  uint32_t getGlobalTimeAtLocalTime(uint32_t time);
-  uint32_t getTimerTime(uint32_t globalTime);
+  timestamp_t getGlobalTimeAtLocalTime(timestamp_t time);
+  timestamp_t getTimerTime(timestamp_t globalTime);
 
 private:
-  uint32_t mDriftAnchor;
+  timestamp_t mDriftAnchor;
   double mDriftFactor;
   std::vector<Timeout*> mTimeouts;
   bool mIteratorInvalidated = false;

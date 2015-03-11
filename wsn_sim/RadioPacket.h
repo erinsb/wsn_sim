@@ -31,8 +31,8 @@ public:
   RadioPacket& operator=(RadioPacket& rhs);
   std::string ToString(void);
 
-  uint32_t mStartTime;
-  uint32_t mEndTime;
+  timestamp_t mStartTime;
+  timestamp_t mEndTime;
   uint32_t mChannel;
 
 protected:

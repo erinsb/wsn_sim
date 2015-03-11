@@ -1,6 +1,9 @@
 #pragma once
-#include "SimEnv.h"
 #include <stdint.h>
+
+typedef uint64_t timestamp_t;
+
+#include "SimEnv.h"
 #include <stdlib.h>
 
 class SimEnv;
@@ -15,7 +18,7 @@ public:
 
   SimEnv* getEnvironment(void) const { return p_mSimEnv; }
 
-  virtual void step(uint32_t time) = 0;
+  virtual void step(timestamp_t time) = 0;
 
 private:
   SimEnv* p_mSimEnv = NULL;

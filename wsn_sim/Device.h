@@ -23,7 +23,7 @@ public:
   typedef struct 
   {
     double power_mA;
-    uint32_t timestamp;
+    timestamp_t timestamp;
   }powerEvent_t;
 
 
@@ -35,15 +35,15 @@ public:
 
   double getDistanceTo(Device& device) const;
 
-  virtual void step(uint32_t timestamp);
+  virtual void step(timestamp_t timestamp);
 
   //power
   void registerPowerDrain(double power_mA);
   void removePowerDrain(double power_mA);
-  std::vector<double> getPowerUsage(uint32_t firstSample = 0, uint32_t lastSample = UINT32_MAX) const;
+  std::vector<double> getPowerUsage(timestamp_t firstSample = 0, timestamp_t lastSample = UINT64_MAX) const;
   std::vector<powerEvent_t> getPowerUsageEvents(void) { return powerUsage; }
-  double getPowerUsageAvg(uint32_t firstSample = 0, uint32_t lastSample = UINT32_MAX) const;
-  void plotPower(uint32_t startTime = 0, uint32_t endTime = UINT32_MAX);
+  double getPowerUsageAvg(timestamp_t firstSample = 0, timestamp_t lastSample = UINT64_MAX, double paukert = 1.0) const;
+  void plotPower(timestamp_t startTime = 0, timestamp_t endTime = UINT64_MAX);
 
   typedef struct
   {

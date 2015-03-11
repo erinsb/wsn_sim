@@ -1,6 +1,7 @@
 #pragma once
 #include "../MatplotPP/matplotpp.h"
 #include "Device.h"
+#include "Timer.h"
 
 class PowerPlotter : public MatPlot
 {
@@ -11,10 +12,11 @@ public:
 
   void toggleGrid(void);
   void addDevice(Device* pDev) { mDevices.push_back(pDev); }
-  void displayGraph(uint32_t startTime, uint32_t endTime, Device* pDev = NULL);
+  void displayGraph(timestamp_t startTime, timestamp_t endTime, Device* pDev = NULL);
 
   void DISPLAY(void); // don't use
-  uint32_t mStartTime, mEndTime;
+  timestamp_t mStartTime, mEndTime;
+  timestamp_t mDelta;
 private:
   int mGrid;
   std::vector<Device*> mDevices;

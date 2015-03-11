@@ -1,4 +1,5 @@
 #include "SimEnv.h"
+#include "Timer.h"
 #include "Multithreading.h"
 #include <thread>
 #include "Logger.h"
@@ -64,7 +65,7 @@ uint32_t SimEnv::numberOfRunnables(void) const
 #endif
 }
 
-void SimEnv::run(uint32_t stopTime, uint32_t deltaTime)
+void SimEnv::run(timestamp_t stopTime, timestamp_t deltaTime)
 {
 #if USE_THREADS
   uint32_t index = 0;
@@ -103,9 +104,9 @@ void SimEnv::run(uint32_t stopTime, uint32_t deltaTime)
 }
 
 
-void SimEnv::registerExecution(Runnable* executor, uint32_t timestamp)
+void SimEnv::registerExecution(Runnable* executor, timestamp_t timestamp)
 {
-  if (timestamp > getTimestamp())
+  if (true || timestamp > getTimestamp())
   {
     if (timestamp < mNextExecution || mExecutionList.size() == 0)
     {
@@ -140,7 +141,7 @@ void SimEnv::registerExecution(Runnable* executor, uint32_t timestamp)
 }
 
 
-void SimEnv::step(uint32_t stopTime)
+void SimEnv::step(timestamp_t stopTime)
 {
   mNextExecution = stopTime;
   auto it = mExecutionList.rbegin();
@@ -151,17 +152,17 @@ void SimEnv::step(uint32_t stopTime)
     if (pEx->timestamp <= mTime)
     {
       Runnable* pRunnable = pEx->pRunnable;
-      uint32_t timestamp = pEx->timestamp;
+      timestamp_t timestamp = pEx->timestamp;
 
       mExecutionList.erase(--(it.base()));
 
       if (pRunnable != NULL)
         pRunnable->step(timestamp);
 
-      if (mTime % mReportRate == 0 && mTime > mLastReport && LOG_ENABLE)
+      if (mReportRate > 0 && mTime % mReportRate == 0 && mTime > mLastReport && LOG_ENABLE)
       {
         LOG_COLOR(FOREGROUND_BLUE | FOREGROUND_INTENSITY);
-        printf("|%02d:%02d.%06d|----------------------------------------------------------------\n", mTime / MINUTES, mTime / SECONDS, mTime % SECONDS);
+        printf("|%02llu:%02llu.%06llu|----------------------------------------------------------------\n", mTime / MINUTES, (mTime / SECONDS) % 60, mTime % SECONDS);
         LOG_COLOR_RESET;
         mLastReport = mTime;
         registerExecution(NULL, mTime + mReportRate);

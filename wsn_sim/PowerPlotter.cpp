@@ -162,12 +162,13 @@ void PowerPlotter::toggleGrid(void)
   glutPostRedisplay();
 }
 
-void PowerPlotter::displayGraph(uint32_t startTime, uint32_t endTime, Device* pDev)
+void PowerPlotter::displayGraph(timestamp_t startTime, timestamp_t endTime, Device* pDev)
 {
   if (pDev != NULL)
     mDevices.push_back(pDev);
   mStartTime = startTime;
   mEndTime = endTime;
+  mDelta = endTime - startTime;
   if (mDevices.size() > 0)
     runGLUT(this);
 }

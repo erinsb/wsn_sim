@@ -57,11 +57,11 @@ void Device::removePowerDrain(double power_mA)
   registerPowerDrain(-power_mA);
 }
 
-std::vector<double> Device::getPowerUsage(uint32_t firstSample, uint32_t lastSample) const 
+std::vector<double> Device::getPowerUsage(timestamp_t firstSample, timestamp_t lastSample) const
 {
   std::vector<double> resultVector;
-  uint32_t time = firstSample;
-  uint32_t now = getEnvironment()->getTimestamp();
+  timestamp_t time = firstSample;
+  timestamp_t now = getEnvironment()->getTimestamp();
   
   if (lastSample > now)
     lastSample = now;

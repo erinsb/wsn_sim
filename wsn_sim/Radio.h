@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include "Device.h"
+#include "Timer.h"
 #include "Runnable.h"
 #include "RadioPacket.h"
 
@@ -39,8 +40,8 @@ public:
   Radio(
     Device* device, 
     uint8_t sigStrength, 
-    uint32_t turnaroundTime_us, 
-    uint32_t tifs_us, 
+    timestamp_t turnaroundTime_us,
+    timestamp_t tifs_us,
     uint32_t bitrate);
 
   ~Radio();
@@ -49,7 +50,7 @@ public:
   void receive(void);
   void disable(void);
   void setPacket(uint8_t* packet, uint8_t length);
-  void setTifs(uint32_t tifs) { mTifs_us = (mTurnaroundTime_us > tifs)? mTurnaroundTime_us : tifs; }
+  void setTifs(timestamp_t tifs) { mTifs_us = (mTurnaroundTime_us > tifs) ? mTurnaroundTime_us : tifs; }
   void setChannel(uint32_t ch) { mChannel = ch; }
   uint32_t getChannel(void) const { return mChannel; }
 
@@ -72,7 +73,7 @@ public:
 
   Device* const getDevice(void) const { return mDevice; }
 
-  virtual void step(uint32_t time);
+  virtual void step(timestamp_t time);
 
 private:
   typedef enum
@@ -88,9 +89,9 @@ private:
   RadioPacket mCurrentPacket;
   packetHandle_t mTxPacketHandle;
   WSN* mWSN;
-  uint32_t mTurnaroundTime_us;
+  timestamp_t mTurnaroundTime_us;
   uint32_t mBitrate;
-  uint32_t mNextActionTime;
+  timestamp_t mNextActionTime;
   uint8_t mTifs_us;
   uint8_t mSigStrength;
   uint32_t mChannel;
@@ -105,6 +106,6 @@ private:
   void shortToNextState(void);
 
   void setState(state_t newState);
-  void wait(uint32_t time);
+  void wait(timestamp_t time);
 };
 
