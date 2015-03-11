@@ -19,7 +19,7 @@ const double Radio::powerProfile[] =
   RADIO_POWER_IDLE
 };
 
-Radio::Radio(Device* device, uint8_t sigStrength, uint32_t turnaroundTime_us, uint32_t tifs_us, uint32_t bitrate) : 
+Radio::Radio(Device* device, uint8_t sigStrength, timestamp_t turnaroundTime_us, timestamp_t tifs_us, uint32_t bitrate) :
   mDevice(device), 
   mSigStrength(sigStrength), 
   mTurnaroundTime_us(turnaroundTime_us), 
@@ -111,7 +111,7 @@ void Radio::receivePacket(RadioPacket* pPacket, uint8_t rx_strength, bool corrup
   mDevice->radioCallbackRx(&localPacket, rx_strength, corrupted);
 }
 
-void Radio::step(uint32_t timestamp)
+void Radio::step(timestamp_t timestamp)
 {
   if (timestamp != mNextActionTime)
   {
@@ -200,7 +200,7 @@ void Radio::setState(state_t newState)
   mState = newState;
 }
 
-void Radio::wait(uint32_t time)
+void Radio::wait(timestamp_t time)
 {
   mNextActionTime = getEnvironment()->getTimestamp() + time;
   getEnvironment()->registerExecution(this, mNextActionTime);
