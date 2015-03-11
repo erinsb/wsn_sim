@@ -58,6 +58,8 @@ uint32_t mesh_packet_t::getPayloadLength(void)
 
 bool msgIDcache_t::hasID(msgID_t msgID)
 {
+  if (msgID == 0)
+    return false;
   for (msgID_t& entry : entries)
   {
     if (entry == msgID)
