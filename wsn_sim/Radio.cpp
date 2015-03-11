@@ -126,6 +126,7 @@ void Radio::step(uint32_t timestamp)
 
   case RADIO_STATE_RAMPUP_TX:  
     setState(RADIO_STATE_TX);
+    mCurrentPacket.mStartTime = getEnvironment()->getTimestamp();
     mTxPacketHandle = mWSN->startTransmit(mCurrentPacket);
     wait(getTxTime(mCurrentPacket.getLength()));
     _LOG("%s RU TX done", mDevice->mName.c_str());
