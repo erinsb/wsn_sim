@@ -60,13 +60,16 @@ void Timer::reschedule(timer_t timer, timestamp_t timestamp)
 
 void Timer::abort(timer_t timer)
 {
+  bool didAbort = false;
   for (auto it = mTimeouts.begin(); it != mTimeouts.end();)
   {
     if ((*it)->mTimerID == timer)
     {
+      didAbort = true;
       if (*it == mCurrentTimeout)
       {
         (*it)->invalid = true;
+        it++;
       }
       else
       {
