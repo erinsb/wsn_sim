@@ -74,12 +74,13 @@ static void runGLUT(PowerPlotter* pPlotter)
 
 void PowerPlotter::specialKeys(int key, int x, int y)
 {
-  uint32_t delta = mEndTime - mStartTime;
-  uint32_t maxTime = mDevices[0]->getEnvironment()->getTimestamp();
-  int movement_speed = (glutGetModifiers() & GLUT_ACTIVE_SHIFT) ? MOVE_DELTA_FAST : MOVE_DELTA;
-  movement_speed *= delta / 1000.0;
-  uint32_t tempStartTime = mStartTime;
-  uint32_t tempEndTime = mEndTime;
+  timestamp_t delta = mEndTime - mStartTime;
+  timestamp_t maxTime = mDevices[0]->getEnvironment()->getTimestamp();
+  int movement_speed = (glutGetModifiers() & GLUT_ACTIVE_CTRL)? mDelta : (glutGetModifiers() & GLUT_ACTIVE_SHIFT) ? MOVE_DELTA_FAST : MOVE_DELTA;
+  if (!(glutGetModifiers() & GLUT_ACTIVE_CTRL))
+    movement_speed *= delta / 1000.0;
+  timestamp_t tempStartTime = mStartTime;
+  timestamp_t tempEndTime = mEndTime;
   switch (key)
   {
   case GLUT_KEY_LEFT:
