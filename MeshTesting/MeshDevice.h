@@ -52,6 +52,7 @@ typedef enum
   MESH_ADV_TYPE_DEFAULT,                // fallback packet for when packet queue is empty
   MESH_ADV_TYPE_SLEEPING,               // node is falling asleep
   MESH_ADV_TYPE_WAKEUP,                 // request to wake up nodes
+  MESH_ADV_TYPE_CORRUPTION_NOTIFICATION,// a corrupted package was registered in the network
   MESH_ADV_TYPE_NEIGHBOR_NOTIFICATION,  // emitted when a new neighbor is discovered
   MESH_ADV_TYPE_NEIGHBOR_REQUEST,       // asking for information about a neighbor's neighbor. Triggers neighbor notifications
   MESH_ADV_TYPE_ACK,                    // confirming reception of value

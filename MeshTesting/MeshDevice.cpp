@@ -187,7 +187,7 @@ MeshDevice::MeshDevice(std::string name, double x, double y) :
   mDefaultPacket.payload.str.payload.default.clusterAddr.clear();
   mDefaultPacket.payload.str.payload.default.nbCount = 0;
   mDefaultPacket.payload.str.payload.default.nbCount = 0;
-  mDefaultPacket.header.length = 4 + MESH_PACKET_OVERHEAD_DEFAULT;
+  mDefaultPacket.header.length = MESH_PACKET_OVERHEAD_DEFAULT;
 }
 
 
@@ -295,7 +295,29 @@ void MeshDevice::abortSubscription(MeshNeighbor* pSub)
     mClusterHead = NULL;
     electClusterHead();
   }
-  return;
+
+  if (mClusterSleeps)
+    return;
+
+  while (mSubscriptions.size() < MESH_OPTIMAL_SUBSCRIPTIONS && mNeighbors.size() > 6)
+  {
+    MeshNeighbor* pBestNb = NULL;
+    for (MeshNeighbor* pNb : mNeighbors)
+    {
+      if (pNb == pSub || pNb->mFollowing == true) // don't resubscribe to the recently lost node
+        continue;
+      if (pBestNb == NULL || pNb->mNodeWeight < pBestNb->mNodeWeight)
+      {
+        pBestNb = pNb;
+      }
+    }
+    if (pBestNb == NULL)
+      break;
+
+    resubscribe(pBestNb);
+  }
+
+#if 0
   // fall asleep if I am a connector node and last external CH is lost
   if (!mIsCH && mClusterSleeps && mBeaconing) // is connector node
   {
@@ -310,6 +332,7 @@ void MeshDevice::abortSubscription(MeshNeighbor* pSub)
       transmitSleep();
     }
   }
+#endif
 }
 
 void MeshDevice::transmitUnicast(
@@ -575,7 +598,7 @@ void MeshDevice::radioCallbackTx(RadioPacket* packet)
   }
   if (mIsCH && (mBeaconCount - mFirstBeaconTX) == 10)
   {
-    //transmitSleep(); // send the entire cluster to sleep
+    transmitSleep(); // send the entire cluster to sleep
   }
   if (pMeshPacket->payload.str.adv_type == MESH_ADV_TYPE_SLEEPING)
   {
@@ -804,15 +827,15 @@ void MeshDevice::rxStop(timestamp_t timestamp, void* context)
 void MeshDevice::beaconTimeout(timestamp_t timestamp, void* context)
 {
   mInBeaconTX = true;
-
+  bool updateDefaultPacket = (mPacketQueue.size() == 0 || mPacketQueue.front() == &mDefaultPacket);
+  mesh_packet_t* pPacket = NULL;
   // send packet from queue, if any. 
   if (mPacketQueue.size() > 0)
   {
-    mesh_packet_t* pPacket = mPacketQueue.front();
-    mRadio->setPacket((uint8_t*)pPacket, pPacket->header.length + MESH_PACKET_OVERHEAD);
+    pPacket = mPacketQueue.front();
     mPacketQueue.pop();
   }
-  else
+  if (updateDefaultPacket)
   { 
     // update values in default packet
     if (mIsCH)
@@ -831,9 +854,9 @@ void MeshDevice::beaconTimeout(timestamp_t timestamp, void* context)
     mDefaultPacket.payload.str.payload.default.nodeWeight = mNodeWeight;
     mDefaultPacket.payload.str.payload.default.offsetFromCH = MESH_CH_OFFSET_SLOTS(mCHBeaconOffset);
     mDefaultPacket.payload.str.adv_len = MESH_PACKET_OVERHEAD_DEFAULT;
-
-    mRadio->setPacket((uint8_t*)&mDefaultPacket, mDefaultPacket.header.length + MESH_PACKET_OVERHEAD - 4);
+    pPacket = &mDefaultPacket;
   }
+  mRadio->setPacket((uint8_t*)pPacket, pPacket->header.length + MESH_PACKET_OVERHEAD);
   
   mLastBeaconChannel = (mLastBeaconTime > 0)? getNextChannel(mLastBeaconChannel, mMyAddr.arr[0]) : FIRST_CHANNEL;
   mRadio->setChannel(mLastBeaconChannel);
@@ -928,6 +951,7 @@ bool MeshDevice::electClusterHead(void)
   if (pStrongestCH != NULL)
   {
     mClusterHead = pStrongestCH;
+
     return true;
   }
   else if (pStrongestNeighbor == NULL || pStrongestNeighbor->mNodeWeight > mNodeWeight)
