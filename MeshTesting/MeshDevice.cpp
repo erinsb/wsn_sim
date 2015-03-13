@@ -84,7 +84,6 @@ MeshNeighbor::MeshNeighbor(ble_adv_addr_t* adv_addr) :
   mRxTimer(0),
   mDebugTag(false)
 {
-  mInterval = MESH_INTERVAL + 625 * adv_addr->arr[1];
   mClusterHead.clear();
   mAdvAddr.set(*adv_addr);
 }
@@ -152,7 +151,7 @@ uint32_t MeshNeighbor::getLostPacketCount(timestamp_t timestamp)
 MeshDevice::MeshDevice(std::string name, double x, double y) :
   Device(x, y), 
   mSearching(false), 
-  mCHBeaconOffset(mRand(MESH_INTERVAL - 2 * MESH_CH_BEACON_MARGIN) + MESH_CH_BEACON_MARGIN), 
+  mCHBeaconOffset(((mRand(MESH_INTERVAL - 2 * MESH_CH_BEACON_MARGIN) + MESH_CH_BEACON_MARGIN) / 625) * 625), 
   mClusterHead(NULL),
   mNodeWeight(mRand() % 0xFF),
   mIsCH(false),
@@ -239,9 +238,9 @@ void MeshDevice::startBeaconing(void)
     mLastBeaconChannel = FIRST_CHANNEL;
   mBeaconCount = 0;
   if (mClusterHead != NULL)
-    mBeaconTimerID = mTimer->orderPeriodic(mClusterHead->getNextBeaconTime(mTimer->getTimestamp()) + mCHBeaconOffset, MESH_INTERVAL + (timestamp_t)mMyAddr.arr[1] * 625ULL, MEMBER_TIMEOUT(MeshDevice::beaconTimeout));
+    mBeaconTimerID = mTimer->orderPeriodic(mClusterHead->getNextBeaconTime(mTimer->getTimestamp()) + mCHBeaconOffset, MESH_INTERVAL, MEMBER_TIMEOUT(MeshDevice::beaconTimeout));
   else
-    mBeaconTimerID = mTimer->orderPeriodic(mTimer->getTimestamp() + mCHBeaconOffset, MESH_INTERVAL + (timestamp_t)mMyAddr.arr[1] * 625ULL, MEMBER_TIMEOUT(MeshDevice::beaconTimeout));
+    mBeaconTimerID = mTimer->orderPeriodic(mTimer->getTimestamp() + mCHBeaconOffset, MESH_INTERVAL, MEMBER_TIMEOUT(MeshDevice::beaconTimeout));
   mBeaconing = true;
 }
 
@@ -410,12 +409,9 @@ void MeshDevice::transmitSleep(void)
 void MeshDevice::setClusterHead(MeshNeighbor* nb)
 {
   mCHBeaconOffset = (MESH_INTERVAL + mTimer->getExpiration(mBeaconTimerID) + MESH_TX_RU_TIME - nb->mLastBeaconTime) % MESH_INTERVAL;
+
   if (mClusterHead != NULL)
   {
-    // keep our timeouts, but adjust offset
-    timestamp_t nextCHbeacon = nb->getNextBeaconTime(mTimer->getTimestamp());
-    
-
     if (!nb->mFollowing)
     {
       if (mSubscriptions.size() >= MESH_MAX_SUBSCRIPTIONS)
@@ -626,14 +622,19 @@ void MeshDevice::radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool 
   }
 
   mesh_packet_t* pMeshPacket = (mesh_packet_t*) packet->getContents();
-
   MeshNeighbor* pNb = getNeighbor(&pMeshPacket->adv_addr);
+
+  int64_t drift = 0; 
+
   if (pNb == NULL)
   {
     pNb = registerNeighbor(&pMeshPacket->adv_addr, mTimer->getTimerTime(packet->mStartTime), pMeshPacket, rx_strength, packet->getSender()->getDevice());
   }
   else
   {
+    drift = mTimer->getTimerTime(packet->mStartTime) - pNb->mLastBeaconTime - MESH_INTERVAL;
+    //if (pNb == mClusterHead)
+    //  _MESHLOG(mName, "Drift: %d", drift);
     pNb->receivedBeacon(mTimer->getTimerTime(packet->mStartTime), pMeshPacket, packet->mChannel, rx_strength); // let neighbor structure update itself
   }
 
@@ -652,7 +653,7 @@ void MeshDevice::radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool 
     }
     else if (mClusterHead == pNb && mBeaconing)
     {
-      mTimer->reschedule(mBeaconTimerID, mTimer->getTimerTime(packet->mStartTime) + mCHBeaconOffset - MESH_TX_RU_TIME);
+      mTimer->reschedule(mBeaconTimerID, mLastBeaconTime + MESH_INTERVAL + drift - MESH_TX_RU_TIME); // mTimer->getTimerTime(packet->mStartTime) + mCHBeaconOffset
     }
 
     // sync all leaf node drifts
@@ -660,8 +661,6 @@ void MeshDevice::radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool 
     {
       if (pChLeaf->mClusterHead == pNb->mAdvAddr)
       {
-        //pChLeaf->mLastSyncTime = mTimer->getTimerTime(packet->mStartTime);
-
         // alter timeout
         if (pChLeaf->mFollowing)
         {

@@ -8,11 +8,11 @@
 #include <stdint.h>
 #include <stdarg.h>
 
-#define MESH_INTERVAL               (200L*MS)
+#define MESH_INTERVAL               (100L*MS)
 #define MESH_MAX_SUBSCRIPTIONS      (8)
 #define MESH_OPTIMAL_SUBSCRIPTIONS  (4)
 #define MESH_MAX_LOSS_COUNT         (6)
-#define MESH_MAX_CLOCK_DRIFT        (1000.0 * PPM)
+#define MESH_MAX_CLOCK_DRIFT        (500.0 * PPM)
 #define MESH_MAX_CLOCK_DRIFT_TWO_SIDED  (MESH_MAX_CLOCK_DRIFT * 2.1)
 #define MESH_CH_OFFSET_US(offs)     (625 * ((timestamp_t) offs))
 #define MESH_CH_OFFSET_SLOTS(offs)  ((timestamp_t) offs / 625)
@@ -204,7 +204,7 @@ private:
   uint32_t mLastChannel;
   uint8_t mLazyInterval;
   timestamp_t mBeaconOffset;
-  timestamp_t mInterval;
+  //timestamp_t mInterval;
 
   MeshDevice* mDev; // for debugging
   bool mDebugTag;
