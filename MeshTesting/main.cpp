@@ -8,8 +8,8 @@
 #include <Windows.h>
 
 #define DEVICE_COUNT  (16)
-#define AREA_SIZE     (15.0)
-#define SIM_TIME      (30ULL * SECONDS)
+#define AREA_SIZE     (35.0)
+#define SIM_TIME      (3ULL * MINUTES)
 int main(void)
 {
   system("mode con:cols=120 lines=10000");
@@ -62,7 +62,7 @@ int main(void)
   printf("Orphans: %d\n", orphans);
   wsn.print();
   wsn.exportGraphViz("test_small", AREA_SIZE);
-  plotter.displayGraph(0, 200*MS);
+  plotter.displayGraph(0, MESH_INTERVAL);
   system("pause");
   return 0;
 }
