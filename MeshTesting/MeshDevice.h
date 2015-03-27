@@ -51,6 +51,8 @@ typedef enum
 {
   MESH_ADV_TYPE_RAW = 0x50,
   MESH_ADV_TYPE_DEFAULT,                // fallback packet for when packet queue is empty
+  MESH_ADV_TYPE_CLUSTER_REQ,
+  MESH_ADV_TYPE_JOIN_CLUSTER,
   MESH_ADV_TYPE_SLEEPING,               // node is falling asleep
   MESH_ADV_TYPE_WAKEUP,                 // request to wake up nodes
   MESH_ADV_TYPE_CORRUPTION_NOTIFICATION,// a corrupted package was registered in the network
@@ -89,6 +91,15 @@ typedef struct
           uint8_t nbCount;            // number of other nodes this one is subscribed to
           uint8_t nodeWeight;         // based on power supply and stability. Lower is better
         } default;
+        struct
+        {
+          ble_adv_addr_t clusterAddr;
+        } cluster_req;
+        struct
+        {
+          uint8_t first_slot;
+          ble_adv_addr_t node[4];
+        } join_cluster;
         struct
         {
           ble_adv_addr_t clusterAddr; // address of cluster head
@@ -251,6 +262,7 @@ public:
   void transmitNeighborNotification(MeshNeighbor* pNb);
   void transmitRepeat(mesh_packet_t* pPacket, bool overWriteAdvAddr = true);
   void transmitSleep(void);
+  void transmitClusterjoin(void);
 
   bool hasMessageID(msgID_t messageID) { return mMsgIDcache.hasID(messageID); }
     
@@ -276,6 +288,7 @@ private:
   std::vector<MeshNeighbor*> mNeighbors;
   std::queue<mesh_packet_t*> mPacketQueue;
   std::vector<MeshNeighbor*> mSubscriptions;
+  std::queue<MeshNeighbor*> mClusterRequesters;
   mesh_packet_t mDefaultPacket;
   MeshNeighbor* mCurrentSub;
   MeshNeighbor* mClusterHead;
@@ -285,10 +298,12 @@ private:
   bool mIsCH;
   bool mClusterSleeps;
   bool mBeaconing;
+  bool mClusterSync;
   ble_adv_addr_t mMyAddr;
   uint8_t mNodeWeight;
   timestamp_t mCHBeaconOffset;
   timestamp_t mLastBeaconTime;
+  uint32_t mClusterLeafCount;
   uint32_t mLastBeaconChannel;
   timestamp_t mFirstBeaconTX;
   uint32_t mBeaconCount;
@@ -307,7 +322,7 @@ private:
   void rxStop(timestamp_t timestamp, void* context);
   void beaconTimeout(timestamp_t timestamp, void* context);
   bool electClusterHead(void);
-  void processPacket(mesh_packet_t* pMeshPacket);
+  void processPacket(mesh_packet_t* pMeshPacket, timestamp_t start_time);
   void becomeCH(void);
   void lostPacket(MeshNeighbor* pNb);
   void sleep(void);

@@ -8,13 +8,18 @@
 
 #define SEARCHLIGHT_SLOT  (10000)
 #define FIRST_CHANNEL     (37)
-#define LAST_CHANNEL      (39)
+#define LAST_CHANNEL      (37)
 
 using namespace std::placeholders;
 
 
 static uint32_t getNextChannel(uint32_t lastChannel, uint8_t seed, uint8_t lostBeacons = 0)
 {
+  if (FIRST_CHANNEL == LAST_CHANNEL)
+  {
+    return FIRST_CHANNEL;
+  }
+  
   while (lostBeacons-- > 0)
   {
     lastChannel = getNextChannel(lastChannel, seed, 0);
@@ -26,7 +31,7 @@ static uint32_t getNextChannel(uint32_t lastChannel, uint8_t seed, uint8_t lostB
       ch -= (LAST_CHANNEL - FIRST_CHANNEL);
     return ch;
   }
-  else
+  else 
   {
     int32_t ch = lastChannel - 1;
     while (ch < FIRST_CHANNEL)
@@ -109,10 +114,8 @@ void MeshNeighbor::receivedBeacon(timestamp_t rxTime, mesh_packet_t* beacon, uin
     case MESH_ADV_TYPE_SLEEPING:
       mClusterHead.set(beacon->payload.str.payload.sleeping.clusterAddr);
       break;
-
     default:
       // don't care
-      _WARN("Unhandled nb packet");
       break;
     }
   }
@@ -157,7 +160,8 @@ MeshDevice::MeshDevice(std::string name, double x, double y) :
   mIsCH(false),
   mBeaconCount(0),
   mBeaconing(false), 
-  mLastBeaconChannel(FIRST_CHANNEL)
+  mLastBeaconChannel(FIRST_CHANNEL),
+  mClusterSync(false)
 {
   mBackgroundPowerUsage = 0.007; // 7uA all the time
   mExtraPowerUsagePart = 1.05; // 105% more power than assumed
@@ -202,7 +206,6 @@ void MeshDevice::start(void)
   mTimer->orderRelative(MESH_INTERVAL + MESH_CH_BEACON_MARGIN, [](timestamp_t timeout, void* context)
   {
     MeshDevice* pMD = ((MeshDevice*)context);
-    pMD->stopSearch();
     pMD->electClusterHead();
   },
     this);
@@ -429,9 +432,28 @@ void MeshDevice::transmitSleep(void)
   mPacketQueue.push(pPacket);
 }
 
+void MeshDevice::transmitClusterjoin(void)
+{
+  mesh_packet_t* pPacket = new mesh_packet_t();
+
+  pPacket->access_addr = MESH_ACCESS_ADDR;
+  pPacket->header.length = MESH_PACKET_OVERHEAD + MESH_PACKET_OVERHEAD_JOIN_CLUSTER;
+  pPacket->header.type = BLE_PACKET_TYPE_ADV_IND;
+  pPacket->payload.str.adv_len = MESH_PACKET_OVERHEAD_JOIN_CLUSTER;
+  pPacket->payload.str.adv_type = MESH_ADV_TYPE_JOIN_CLUSTER;
+  for (uint8_t i = 0; i < 4; ++i)
+    pPacket->payload.str.payload.join_cluster.node[i].clear();
+  pPacket->adv_addr.set(mMyAddr);
+
+  mPacketQueue.push(pPacket);
+}
+
 void MeshDevice::setClusterHead(MeshNeighbor* nb)
 {
   mCHBeaconOffset = (MESH_INTERVAL + mTimer->getExpiration(mBeaconTimerID) + MESH_TX_RU_TIME - nb->mLastBeaconTime) % MESH_INTERVAL;
+  mClusterSync = false;
+  /* start requesting cluster position */
+  mDefaultPacket.payload.str.adv_type = MESH_ADV_TYPE_CLUSTER_REQ;
 
   if (mClusterHead != NULL)
   {
@@ -598,7 +620,7 @@ void MeshDevice::radioCallbackTx(RadioPacket* packet)
   }
   if (mIsCH && (mBeaconCount - mFirstBeaconTX) == 10)
   {
-    transmitSleep(); // send the entire cluster to sleep
+    //transmitSleep(); // send the entire cluster to sleep
   }
   if (pMeshPacket->payload.str.adv_type == MESH_ADV_TYPE_SLEEPING)
   {
@@ -664,7 +686,7 @@ void MeshDevice::radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool 
   // bump timer drift
   resync(pNb);
 
-  processPacket(pMeshPacket);
+  processPacket(pMeshPacket, mTimer->getTimerTime(packet->mStartTime));
 
   if (pNb->isClusterHead())
   {
@@ -751,6 +773,12 @@ void MeshDevice::resync(MeshNeighbor* pNb)
 void MeshDevice::subscriptionTimeout(timestamp_t timestamp, void* context)
 {
   MeshNeighbor* pSub = (MeshNeighbor*) context;
+  if (mSearching) // are already listening
+  {
+    mCurrentSub = pSub;
+    return;
+  }
+
   if (mInBeaconTX)
   {
     lostPacket(pSub); // beacon is more important
@@ -821,6 +849,23 @@ void MeshDevice::beaconTimeout(timestamp_t timestamp, void* context)
   {
     pPacket = mPacketQueue.front();
     mPacketQueue.pop();
+    string nodestr = "";
+
+    if (pPacket->payload.str.adv_type == MESH_ADV_TYPE_JOIN_CLUSTER)
+    {
+      pPacket->payload.str.payload.join_cluster.first_slot = mClusterLeafCount;
+      for (uint32_t i = 0; i < 4; ++i)
+      {
+        if (mClusterRequesters.size() == 0)
+          break;
+        
+        pPacket->payload.str.payload.join_cluster.node[i].set(mClusterRequesters.front()->mAdvAddr);
+        mClusterRequesters.pop();
+        mClusterLeafCount++;
+        nodestr += "\n\t" + pPacket->payload.str.payload.join_cluster.node[i].toString();
+      }
+      _LOG("CH sending join packet to %s", nodestr.c_str());
+    }
   }
   if (updateDefaultPacket)
   { 
@@ -974,7 +1019,7 @@ void MeshDevice::resubscribe(MeshNeighbor* pNb)
   }
 }
 
-void MeshDevice::processPacket(mesh_packet_t* pMeshPacket)
+void MeshDevice::processPacket(mesh_packet_t* pMeshPacket, timestamp_t start_time)
 {
   if (hasMessageID(pMeshPacket->payload.str.msgID))
   {
@@ -997,7 +1042,25 @@ void MeshDevice::processPacket(mesh_packet_t* pMeshPacket)
       }
     }
     break;
-
+  case MESH_ADV_TYPE_CLUSTER_REQ:
+    if (pMeshPacket->payload.str.payload.cluster_req.clusterAddr == mMyAddr && mIsCH)
+    {
+      mClusterRequesters.push(getNeighbor(&pMeshPacket->adv_addr));
+      transmitClusterjoin();
+    }
+    break;
+  case MESH_ADV_TYPE_JOIN_CLUSTER:
+    for (uint8_t i = 0; i < 4; ++i)
+    {
+      if (pMeshPacket->payload.str.payload.join_cluster.node[i] == mMyAddr)
+      {
+        // move beacon to the number in the slot
+        mClusterSync = true;
+        mTimer->reschedule(mBeaconTimerID, start_time + MESH_INTERVAL + MESH_CH_OFFSET_US(pMeshPacket->payload.str.payload.join_cluster.first_slot + i));
+        break;
+      }
+    }
+    break;
   case MESH_ADV_TYPE_SLEEPING:
     if (pSender == mClusterHead && mClusterHead != NULL) // clusterhead commanded sleep. Do so.
     {
