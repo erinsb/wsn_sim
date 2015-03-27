@@ -28,14 +28,15 @@
 #define MESH_CH_SWITCH_THRESHOLD    (20)        // required difference in ch weight before we change ch
 #define MESH_BLANK_MSGID            (0)
 
-#define MESH_PACKET_OVERHEAD           (sizeof(uint32_t) + sizeof(ble_packet_header_t) + BLE_ADV_ADDR_LEN + sizeof(uint8_t) + sizeof(uint8_t) + sizeof(msgID_t))
-#define MESH_PACKET_OVERHEAD_UNICAST   (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint32_t))
-#define MESH_PACKET_OVERHEAD_BROADCAST (BLE_ADV_ADDR_LEN + sizeof(uint16_t))
-#define MESH_PACKET_OVERHEAD_NBNOT     (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint8_t))
-#define MESH_PACKET_OVERHEAD_DEFAULT   (BLE_ADV_ADDR_LEN + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t))
-#define MESH_PACKET_OVERHEAD_SLEEPING  (BLE_ADV_ADDR_LEN + sizeof(uint16_t))
-#define MESH_PACKET_OVERHEAD_DIST_REQ  (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint16_t))
-#define MESH_PACKET_OVERHEAD_DIST_RSP  (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint32_t))
+#define MESH_PACKET_OVERHEAD              (sizeof(uint32_t) + sizeof(ble_packet_header_t) + BLE_ADV_ADDR_LEN + sizeof(uint8_t) + sizeof(uint8_t) + sizeof(msgID_t))
+#define MESH_PACKET_OVERHEAD_UNICAST      (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint32_t))
+#define MESH_PACKET_OVERHEAD_BROADCAST    (BLE_ADV_ADDR_LEN + sizeof(uint16_t))
+#define MESH_PACKET_OVERHEAD_NBNOT        (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint8_t))
+#define MESH_PACKET_OVERHEAD_DEFAULT      (BLE_ADV_ADDR_LEN + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t))
+#define MESH_PACKET_OVERHEAD_JOIN_CLUSTER (1 + 4 * BLE_ADV_ADDR_LEN)
+#define MESH_PACKET_OVERHEAD_SLEEPING     (BLE_ADV_ADDR_LEN + sizeof(uint16_t))
+#define MESH_PACKET_OVERHEAD_DIST_REQ     (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint16_t))
+#define MESH_PACKET_OVERHEAD_DIST_RSP     (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint32_t))
 
 #define _MESHLOG(name, str, ...) _LOG("[%s] " str, name.c_str(), __VA_ARGS__)
 #define _MESHWARN(name, str, ...) _WARN("[%s] " str, name.c_str(), __VA_ARGS__)

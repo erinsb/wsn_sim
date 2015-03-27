@@ -676,20 +676,7 @@ void MeshDevice::radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool 
     }
     else if (mClusterHead == pNb && mBeaconing)
     {
-      mTimer->reschedule(mBeaconTimerID, mLastBeaconTime + MESH_INTERVAL + drift - MESH_TX_RU_TIME); // mTimer->getTimerTime(packet->mStartTime) + mCHBeaconOffset
-    }
-
-    // sync all leaf node drifts
-    for (MeshNeighbor* pChLeaf : mNeighbors)
-    {
-      if (pChLeaf->mClusterHead == pNb->mAdvAddr)
-      {
-        // alter timeout
-        if (pChLeaf->mFollowing)
-        {
-          //resync(pChLeaf);          
-        }
-      }
+      //mTimer->reschedule(mBeaconTimerID, mLastBeaconTime + MESH_INTERVAL + drift - MESH_TX_RU_TIME); // mTimer->getTimerTime(packet->mStartTime) + mCHBeaconOffset
     }
   }
 
@@ -893,44 +880,6 @@ void MeshDevice::beaconTimeout(timestamp_t timestamp, void* context)
 
 bool MeshDevice::electClusterHead(void)
 {
-#if 0
-  // self elect?
-  MeshNeighbor* pNb = getLightestNeighbor();
-  if (pNb == NULL || pNb->mNodeWeight > mNodeWeight)
-  {
-    _MESHLOG(mName, "Becoming CH because my weight=%d, nb weight=%d", mNodeWeight, pNb->mNodeWeight);
-    becomeCH();
-    return true;
-  }
-
-  MeshNeighbor* pBestCH = NULL;
-  for (MeshNeighbor* pNb : mSubscriptions)
-  {
-    if (pNb->isClusterHead() && (pBestCH == NULL || pNb->mNodeWeight < pBestCH->mNodeWeight))
-    {
-      pBestCH = pNb;
-    }
-  }
-  if (pBestCH != NULL)
-  {
-    setClusterHead(pBestCH);
-    return true;
-  }
-  else
-  {
-    for (MeshNeighbor* pNb : mSubscriptions)
-    {
-      if (pNb->mClusterHead.isNull())
-      {
-        return false;
-      }
-    }
-    becomeCH();
-    return true;
-  }
-  
-  return false;
-#else
   MeshNeighbor* pStrongestCH = NULL;
   MeshNeighbor* pStrongestNeighbor = NULL;
   bool hasAvailableNeighbor = false;
@@ -965,9 +914,7 @@ bool MeshDevice::electClusterHead(void)
     return true;
   }
 
-
   return false;
-#endif
 }
 
 void MeshDevice::subscribe(MeshNeighbor* pNb)
