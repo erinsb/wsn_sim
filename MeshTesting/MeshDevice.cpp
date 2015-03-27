@@ -853,18 +853,25 @@ void MeshDevice::beaconTimeout(timestamp_t timestamp, void* context)
 
     if (pPacket->payload.str.adv_type == MESH_ADV_TYPE_JOIN_CLUSTER)
     {
-      pPacket->payload.str.payload.join_cluster.first_slot = mClusterLeafCount;
-      for (uint32_t i = 0; i < 4; ++i)
+      if (mClusterRequesters.size() == 0)
       {
-        if (mClusterRequesters.size() == 0)
-          break;
-        
-        pPacket->payload.str.payload.join_cluster.node[i].set(mClusterRequesters.front()->mAdvAddr);
-        mClusterRequesters.pop();
-        mClusterLeafCount++;
-        nodestr += "\n\t" + pPacket->payload.str.payload.join_cluster.node[i].toString();
+        updateDefaultPacket = true;
       }
-      _LOG("CH sending join packet to %s", nodestr.c_str());
+      else
+      {
+        pPacket->payload.str.payload.join_cluster.first_slot = mClusterLeafCount;
+        for (uint32_t i = 0; i < 4; ++i)
+        {
+          if (mClusterRequesters.size() == 0)
+            break;
+        
+          pPacket->payload.str.payload.join_cluster.node[i].set(mClusterRequesters.front()->mAdvAddr);
+          mClusterRequesters.pop();
+          mClusterLeafCount++;
+          nodestr += "\n\t" + pPacket->payload.str.payload.join_cluster.node[i].toString();
+        }
+        _LOG("CH sending join packet to %s", nodestr.c_str());
+      }
     }
   }
   if (updateDefaultPacket)
@@ -1057,6 +1064,7 @@ void MeshDevice::processPacket(mesh_packet_t* pMeshPacket, timestamp_t start_tim
         // move beacon to the number in the slot
         mClusterSync = true;
         mTimer->reschedule(mBeaconTimerID, start_time + MESH_INTERVAL + MESH_CH_OFFSET_US(pMeshPacket->payload.str.payload.join_cluster.first_slot + i));
+        mDefaultPacket.payload.str.adv_type = MESH_ADV_TYPE_DEFAULT;
         break;
       }
     }
@@ -1212,6 +1220,7 @@ void MeshDevice::becomeCH(void)
   mIsCH = true;
   mClusterHead = NULL;
   mCHBeaconOffset = 0;
+  mClusterLeafCount = 0;
   _MESHLOG(mName, "Became CH");
   ((MeshWSN*)mWSN)->logClusterHead(this);
   mDevTag = DEVICE_TAG_MEDIUM;
