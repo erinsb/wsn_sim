@@ -10,11 +10,20 @@
 #define DEVICE_COUNT  (16)
 #define AREA_SIZE     (35.0)
 #define SIM_TIME      (3ULL * MINUTES)
+
+BOOL CtrlHandler(DWORD fdwCtrlType)
+{
+  if (fdwCtrlType == CTRL_C_EVENT)
+    exit(0);
+}
+
+
 int main(void)
 {
   system("mode con:cols=120 lines=10000");
   HWND console = GetConsoleWindow();
   MoveWindow(console, 0, 0, 800, 1000, true);
+  SetConsoleCtrlHandler((PHANDLER_ROUTINE)CtrlHandler, TRUE);
 
   SimEnv env;
   MeshWSN wsn;
