@@ -27,6 +27,8 @@
 #define MESH_MESSAGE_ID_CACHE_SIZE  (16)
 #define MESH_CH_SWITCH_THRESHOLD    (20)        // required difference in ch weight before we change ch
 #define MESH_BLANK_MSGID            (0)
+#define MESH_BEACON_JITTER_US       (0)
+#define MESH_MAX_CLUSTER_SIZE       (32)
 
 #define MESH_PACKET_OVERHEAD              (sizeof(uint32_t) + sizeof(ble_packet_header_t) + BLE_ADV_ADDR_LEN + sizeof(uint8_t) + sizeof(uint8_t) + sizeof(msgID_t))
 #define MESH_PACKET_OVERHEAD_UNICAST      (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint32_t))
@@ -289,6 +291,7 @@ private:
   std::queue<mesh_packet_t*> mPacketQueue;
   std::vector<MeshNeighbor*> mSubscriptions;
   std::queue<MeshNeighbor*> mClusterRequesters;
+  MeshNeighbor* mClusterNodes[MESH_MAX_CLUSTER_SIZE];
   mesh_packet_t mDefaultPacket;
   MeshNeighbor* mCurrentSub;
   MeshNeighbor* mClusterHead;
