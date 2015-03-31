@@ -78,7 +78,10 @@ void WSN::endTransmit(packetHandle_t packetHandle)
         pPacket->getMaxDistance()));
     }
 
-    if (sigStrength > 0)
+    // check that the radio has no filters to ignore the packet
+    bool filterOK = pRadio->acceptsPacket(pPacket);
+
+    if (sigStrength > 0 && filterOK) 
       pRadio->receivePacket(pPacket, sigStrength, corrupted[i]); // will cause radio to stop RX
   }
 }
@@ -174,7 +177,16 @@ bool WSN::isReceivingPackets(Radio* radio)
   {
     if (recv.mRadio == radio)
     {
-      return (recv.mPackets.size() > 0);
+      bool aPacketFitsTheFilter = false;
+      for (auto pPacket : recv.mPackets)
+      {
+        if (recv.mRadio->acceptsPacket(pPacket)) // hardware filter in radio
+        {
+          aPacketFitsTheFilter = true;
+          break;
+        }
+      }
+      return (aPacketFitsTheFilter && recv.mPackets.size() > 0);
     }
   }
 
