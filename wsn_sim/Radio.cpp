@@ -30,6 +30,7 @@ Radio::Radio(Device* device, uint8_t sigStrength, timestamp_t turnaroundTime_us,
 {
   // can't be faster than hardware allows
   mTifs_us = (tifs_us > turnaroundTime_us) ? tifs_us : turnaroundTime_us;
+  removeFilter();
 }
 
 Radio::~Radio()

@@ -53,6 +53,10 @@ public:
   void setTifs(timestamp_t tifs) { mTifs_us = (mTurnaroundTime_us > tifs) ? mTurnaroundTime_us : tifs; }
   void setChannel(uint32_t ch) { mChannel = ch; }
   uint32_t getChannel(void) const { return mChannel; }
+  void setFilter(std::function<bool(RadioPacket*)> function) { mFilterFunc = function; }
+  void removeFilter(void) { mFilterFunc = [](RadioPacket*)-> bool {return true; }; }
+
+  bool acceptsPacket(RadioPacket* pPacket) { return mFilterFunc(pPacket); }
 
   void shortToRx(void);
   void shortToTx(void);
@@ -95,6 +99,7 @@ private:
   uint8_t mTifs_us;
   uint8_t mSigStrength;
   uint32_t mChannel;
+  std::function<bool(RadioPacket*)> mFilterFunc;
 
   static const double powerProfile[7];
 
