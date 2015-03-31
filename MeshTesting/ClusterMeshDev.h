@@ -7,22 +7,35 @@
 
 #define MESH_MAX_CLUSTER_SIZE (32)
 #define MESH_CLUSTER_SLOT_US  (625)
+#define MESH_LEAF_SCAN_WAIT   (MESH_INTERVAL * 10 + MESH_INTERVAL / 2)
+
 typedef enum
 {
   CM_STATE_RECON,
-  CM_STATE_MAKE_CLUSTER, 
+  CM_STATE_MAKE_CLUSTER,
   CM_STATE_REQ_CLUSTER,
+  CM_STATE_CH,
   CM_STATE_CH_SCAN,
   CM_STATE_LEAF,
-  CM_STATE_CH
+  CM_STATE_LEAF_SCAN
 } cluster_mesh_state_t;
+
+bool isScanningState(cluster_mesh_state_t state);
+std::string getStateString(cluster_mesh_state_t state);
 
 class MeshCluster
 {
 public:
-  MeshCluster(ble_adv_addr_t* pCHaddr) { mCHaddr.set(*pCHaddr); memset(mDevices, 0, MESH_MAX_CLUSTER_SIZE * sizeof(MeshNeighbor*)); }
+  MeshCluster(ble_adv_addr_t* pCHaddr) 
+  { 
+    mCHaddr.set(*pCHaddr); 
+    memset(mDevices, 0, MESH_MAX_CLUSTER_SIZE * sizeof(MeshNeighbor*)); 
+    mOffsetFromOwnClusterTrain = 0;
+  }
   ble_adv_addr_t mCHaddr;
   MeshNeighbor* mDevices[MESH_MAX_CLUSTER_SIZE];
+  timestamp_t mOffsetFromOwnClusterTrain;
+  uint8_t mClusterMax;
 
   bool contains(MeshNeighbor* pNb)
   {
@@ -52,10 +65,13 @@ public:
     }
     return 0;
   }
+
+  
 };
 
 class ClusterMeshDev : public Device
 {
+  friend MeshWSN;
 public:
   ClusterMeshDev(std::string name = "mesh", double x = 0.0, double y = 0.0);
   ~ClusterMeshDev();
@@ -68,6 +84,7 @@ public:
   void setCH(MeshNeighbor* pCH);
   void becomeCH(void);
   void subscribe(MeshNeighbor* pNb);
+  void subscriptionAbort(MeshNeighbor* pNb);
   void makeClusterCheck(void); // check whether we have a decision on cluster creation yet, and act on it
 
   bool isInCluster(void) { return (mState == CM_STATE_LEAF || CM_STATE_CH); }
@@ -88,6 +105,8 @@ private:
   timer_t mBeaconTimer;
   timer_t mChTimer;
   timer_t mCurrentSubAbortTimer;
+  bool mLeafScanTriggered;
+  bool mJustFinishedLeafScan;
   timestamp_t mLastStateChange;
   std::queue<mesh_packet_t*> mPacketQueue;
   std::stack<mesh_packet_t> mDefaultPacket;
@@ -105,8 +124,10 @@ private:
   void radioBeaconTX(void);
   void radioSubRX(MeshNeighbor* pNb, bool noDrift = false);
   void orderRestOfCluster(MeshCluster* pCluster, uint32_t anchorIndex, timestamp_t anchorTimestamp);
+  bool isSubscribedToCluster(MeshCluster* pCluster);
 
   void setState(cluster_mesh_state_t state);
+  
 
   void transmitClusterjoin(void);
   void transmitClusterReq(void);
