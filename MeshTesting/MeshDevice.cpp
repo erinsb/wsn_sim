@@ -107,12 +107,15 @@ void MeshNeighbor::receivedBeacon(timestamp_t rxTime, mesh_packet_t* beacon, uin
     {
     case MESH_ADV_TYPE_DEFAULT:
       mClusterHead.set(beacon->payload.str.payload.default.clusterAddr);
-      mNbCount = beacon->payload.str.payload.default.nbCount;
+      mNbCount = beacon->payload.str.payload.default.ch_fields.clusterMax;
       mNodeWeight = beacon->payload.str.payload.default.nodeWeight;
-      mBeaconOffset = MESH_CH_OFFSET_US(beacon->payload.str.payload.default.offsetFromCH);
+      mBeaconOffset = beacon->payload.str.payload.default.offsetFromCH;
       break;
     case MESH_ADV_TYPE_SLEEPING:
       mClusterHead.set(beacon->payload.str.payload.sleeping.clusterAddr);
+      break;
+    case MESH_ADV_TYPE_JOIN_CLUSTER:
+      mClusterHead.set(mAdvAddr); // must be clusterhead
       break;
     default:
       // don't care
@@ -194,8 +197,7 @@ MeshDevice::MeshDevice(std::string name, double x, double y) :
   mDefaultPacket.payload.str.msgID = 0;
   mDefaultPacket.payload.str.payload.default.nodeWeight = mNodeWeight;
   mDefaultPacket.payload.str.payload.default.clusterAddr.clear();
-  mDefaultPacket.payload.str.payload.default.nbCount = 0;
-  mDefaultPacket.payload.str.payload.default.nbCount = 0;
+  mDefaultPacket.payload.str.payload.default.ch_fields.clusterMax = 0;
   mDefaultPacket.header.length = MESH_PACKET_OVERHEAD_DEFAULT;
 }
 
@@ -225,7 +227,9 @@ void MeshDevice::startSearch(void)
     return;
 
   mSearching = true;
+  mSearchStartTime = mTimer->getTimestamp();
 
+  mRadio->removeFilter();
   mRadio->setChannel(FIRST_CHANNEL);
   mRadio->shortToRx();
   mRadio->receive();
@@ -241,6 +245,9 @@ void MeshDevice::stopSearch(void)
 
 void MeshDevice::startBeaconing(void)
 {
+  if (mBeaconing)
+    return; // don't duplicate
+
   // randomized offset
   if (mBeaconCount == 0)
     mLastBeaconChannel = FIRST_CHANNEL;
@@ -301,7 +308,9 @@ void MeshDevice::abortSubscription(MeshNeighbor* pSub)
   if (pSub == mClusterHead && mClusterHead != NULL)
   {
     mClusterHead = NULL;
-    electClusterHead();
+    mTimer->orderRelative((MESH_INTERVAL * 8) * (1.0 - MESH_MAX_CLOCK_DRIFT_TWO_SIDED), [this](timestamp_t, void*){ startSearch(); }); // sleep it off, then try to find the CH again
+    
+    //electClusterHead();
   }
 
   if (true || mClusterSleeps)
@@ -484,8 +493,6 @@ void MeshDevice::setClusterHead(MeshNeighbor* nb)
   }
 #endif
   mClusterHead = nb;
-  if (mClusterHead != NULL)
-    _MESHLOG(mName, "Elected clusterHead: %s", mClusterHead->mDev->mName.c_str());
   mWSN->addConnection(this, nb->mDev);
 }
 
@@ -650,7 +657,9 @@ void MeshDevice::radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool 
     mInSubscriptionRX = false;
   }
 
-  if (!hasClusterHead() && mTimer->getTimestamp() > 4 * MESH_INTERVAL)
+  mRadio->removeFilter();
+
+  if (!hasClusterHead() && (mTimer->getTimestamp() > 1 * MESH_INTERVAL + mSearchStartTime))//don't elect CH before we've searched a little
   {
     electClusterHead();
   }
@@ -683,8 +692,6 @@ void MeshDevice::radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool 
   else
   {
     drift = mTimer->getTimerTime(packet->mStartTime) - pNb->mLastBeaconTime - MESH_INTERVAL;
-    //if (pNb == mClusterHead)
-    //  _MESHLOG(mName, "Drift: %d", drift);
     pNb->receivedBeacon(mTimer->getTimerTime(packet->mStartTime), pMeshPacket, packet->mChannel, rx_strength); // let neighbor structure update itself
   }
 
@@ -696,15 +703,23 @@ void MeshDevice::radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool 
   if (pNb->isClusterHead())
   {
     // use as clusterhead if none exists
-    if (mClusterHead == NULL && !mIsCH)
+    if (!hasClusterHead())
     {
       setClusterHead(pNb);
       _MESHLOG(mName, "Elected clusterhead: %s", pNb->mDev->mName.c_str());
+      subscribe(pNb);
+      stopSearch();
     }
     else if (mClusterHead == pNb && mBeaconing && !mIsCH)
     {
       // order beacon at relative time
       mTimer->orderAt(mTimer->getTimerTime(packet->mStartTime) + MESH_CH_OFFSET_US(mCHBeaconOffset) - MESH_TX_RU_TIME, MEMBER_TIMEOUT(MeshDevice::beaconTimeout), NULL);
+    }
+    else if (mIsCH && mClusterLeafCount == 0)
+    {
+      mIsCH = false;
+      stopSearch();
+      electClusterHead();
     }
   }
 
@@ -813,7 +828,8 @@ void MeshDevice::subscriptionTimeout(timestamp_t timestamp, void* context)
 
   mInSubscriptionRX = true;
   mCurrentSub = pSub;
-  // must ensure that we don't count upcoming packet as lost
+  
+  mRadio->setFilter([=](RadioPacket* pPacket)-> bool{return (((mesh_packet_t*)pPacket->getContents())->adv_addr == pSub->mAdvAddr); });
   mRadio->setChannel(pSub->getChannel(timestamp - 1000));
   mRadio->receive();
   //multiply drift by 2.0 to accomodate for the adjustment at the beginning and the end
@@ -832,12 +848,13 @@ void MeshDevice::rxStop(timestamp_t timestamp, void* context)
   MeshNeighbor* pSub = (MeshNeighbor*)context;
   mRadio->shortDisable();
   mRadio->disable();
-
+  mRadio->removeFilter();
+#if 0
   if (pSub->mDev->mBeaconing)
     _MESHWARN(mName, "RX timed out\tmissing: %s (lost: %d). \tMy ch: %d, tx ch: %d", pSub->mDev->mName.c_str(), pSub->getLostPacketCount(timestamp), mRadio->getChannel(), pSub->mDev->mRadio->getChannel());
   else
     _MESHWARN(mName, "RX timed out\tmissing: %s (lost: %d). It's asleep.", pSub->mDev->mName.c_str(), pSub->getLostPacketCount(timestamp));
-
+#endif
   lostPacket(pSub);
 
   mCurrentRXTimer = 0;
@@ -917,6 +934,14 @@ void MeshDevice::beaconTimeout(timestamp_t timestamp, void* context)
       }
     }
   }
+  else if (mDefaultPacket.payload.str.adv_type == MESH_ADV_TYPE_DEFAULT && !mIsCH && mClusterHead != NULL && !mCHdemandsTX) // leafnodes are silent whenever they don't have to be present
+  {
+    return;
+  }
+
+  mCHdemandsTX = false;
+
+
   if (updateDefaultPacket)
   { 
     // update values in default packet
@@ -932,7 +957,7 @@ void MeshDevice::beaconTimeout(timestamp_t timestamp, void* context)
     {
       mDefaultPacket.payload.str.payload.default.clusterAddr.set(mClusterHead->mAdvAddr);
     }
-    mDefaultPacket.payload.str.payload.default.nbCount = mSubscriptions.size();
+    mDefaultPacket.payload.str.payload.default.ch_fields.clusterMax = mSubscriptions.size();
     mDefaultPacket.payload.str.payload.default.nodeWeight = mNodeWeight;
     mDefaultPacket.payload.str.payload.default.offsetFromCH = MESH_CH_OFFSET_SLOTS(mCHBeaconOffset);
     mDefaultPacket.payload.str.adv_len = MESH_PACKET_OVERHEAD_DEFAULT;
@@ -994,8 +1019,7 @@ bool MeshDevice::electClusterHead(void)
 
   if (pStrongestCH != NULL)
   {
-    mClusterHead = pStrongestCH;
-
+    setClusterHead(pStrongestCH);
     return true;
   }
   else if (pStrongestNeighbor == NULL || pStrongestNeighbor->mNodeWeight > mNodeWeight)
@@ -1081,6 +1105,13 @@ void MeshDevice::processPacket(mesh_packet_t* pMeshPacket, timestamp_t start_tim
 
   switch (pMeshPacket->payload.str.adv_type)
   {
+  case MESH_ADV_TYPE_CLUSTER_REQ:
+    if (pMeshPacket->payload.str.payload.cluster_req.clusterAddr == mMyAddr)
+    {
+      mClusterRequesters.push(getNeighbor(&pMeshPacket->adv_addr));
+      transmitClusterjoin();
+    }
+    // fall through
   case MESH_ADV_TYPE_DEFAULT:
     if (!pMeshPacket->payload.str.payload.default.clusterAddr.isNull())
     {
@@ -1090,17 +1121,6 @@ void MeshDevice::processPacket(mesh_packet_t* pMeshPacket, timestamp_t start_tim
         // set the CH neighbor to be its own CH, notified through proxy.
         pCH->mClusterHead.set(pCH->mAdvAddr);
       }
-      if (pMeshPacket->payload.str.payload.default.clusterAddr == mMyAddr)
-      {
-        
-      }
-    }
-    break;
-  case MESH_ADV_TYPE_CLUSTER_REQ:
-    if (pMeshPacket->payload.str.payload.cluster_req.clusterAddr == mMyAddr && mIsCH)
-    {
-      mClusterRequesters.push(getNeighbor(&pMeshPacket->adv_addr));
-      transmitClusterjoin();
     }
     break;
   case MESH_ADV_TYPE_JOIN_CLUSTER:
@@ -1110,6 +1130,7 @@ void MeshDevice::processPacket(mesh_packet_t* pMeshPacket, timestamp_t start_tim
       {
         // move beacon to the number in the slot
         mClusterSync = true;
+        mClusterHead = pSender;
         mCHBeaconOffset = pMeshPacket->payload.str.payload.join_cluster.first_slot + i;
         mTimer->abort(mBeaconTimerID);
         mDefaultPacket.payload.str.adv_type = MESH_ADV_TYPE_DEFAULT;
@@ -1274,6 +1295,7 @@ void MeshDevice::becomeCH(void)
   ((MeshWSN*)mWSN)->logClusterHead(this);
   mDevTag = DEVICE_TAG_MEDIUM;
   mFirstBeaconTX = mBeaconCount;
+  startBeaconing();
 }
 
 void MeshDevice::lostPacket(MeshNeighbor* pNb)

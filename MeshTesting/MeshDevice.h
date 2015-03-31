@@ -19,6 +19,7 @@
 #define MESH_CH_BEACON_MARGIN       (500)
 #define MESH_MAX_ROUTES             (10)
 #define MESH_UNKNOWN_DIST           (UINT32_MAX)
+#define MESH_ADDRESS_OFFSET_US      (40)
 #define MESH_RX_RU_TIME             (150L)       
 #define MESH_TX_RU_TIME             (RADIO_DEFAULT_TURNAROUND)       
 #define MESH_RX_LISTEN_TIME         (380 + MESH_RX_RU_TIME)
@@ -39,6 +40,7 @@
 #define MESH_PACKET_OVERHEAD_SLEEPING     (BLE_ADV_ADDR_LEN + sizeof(uint16_t))
 #define MESH_PACKET_OVERHEAD_DIST_REQ     (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint16_t))
 #define MESH_PACKET_OVERHEAD_DIST_RSP     (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint32_t))
+#define MESH_PACKET_OVERHEAD_CLUSTER_REQ  (1 * BLE_ADV_ADDR_LEN)
 
 #define _MESHLOG(name, str, ...) _LOG("[%s] " str, name.c_str(), __VA_ARGS__)
 #define _MESHWARN(name, str, ...) _WARN("[%s] " str, name.c_str(), __VA_ARGS__)
@@ -46,6 +48,7 @@
 
 class MeshDevice;
 class MeshWSN;
+class ClusterMeshDev;
 
 //mesh packet, based on ble adv
 #pragma pack(push, 1)
@@ -53,6 +56,7 @@ typedef enum
 {
   MESH_ADV_TYPE_RAW = 0x50,
   MESH_ADV_TYPE_DEFAULT,                // fallback packet for when packet queue is empty
+  MESH_ADV_TYPE_CH_HEADCOUNT,           // CH requires leaf nodes to respond 
   MESH_ADV_TYPE_CLUSTER_REQ,
   MESH_ADV_TYPE_JOIN_CLUSTER,
   MESH_ADV_TYPE_SLEEPING,               // node is falling asleep
@@ -90,7 +94,13 @@ typedef struct
         {
           ble_adv_addr_t clusterAddr; // address of cluster head
           uint16_t offsetFromCH;      // number of 625us slots offset
-          uint8_t nbCount;            // number of other nodes this one is subscribed to
+          struct
+          {
+            uint8_t clusterMax : 5;     // Index of first available slot in the cluster
+            uint8_t isScanning : 1;     // device will be scanning until next beacon, requests can occur at any time
+            uint8_t rxAtEnd : 1;        // device will be listening at the end of the cluster train (slot #<clusterMax>)
+            uint8_t headCount : 1;      // all devices in cluster must be active for this cluster event
+          } ch_fields;
           uint8_t nodeWeight;         // based on power supply and stability. Lower is better
         } default;
         struct
@@ -190,6 +200,7 @@ typedef struct
 class MeshNeighbor
 {
   friend MeshDevice;
+  friend ClusterMeshDev;
 public:
   MeshNeighbor(ble_adv_addr_t* addr);
 
@@ -221,7 +232,7 @@ private:
   timestamp_t mBeaconOffset;
   //timestamp_t mInterval;
 
-  MeshDevice* mDev; // for debugging
+  Device* mDev; // for debugging
   bool mDebugTag;
 };
 
@@ -302,12 +313,14 @@ private:
   bool mClusterSleeps;
   bool mBeaconing;
   bool mClusterSync;
+  bool mCHdemandsTX;
   ble_adv_addr_t mMyAddr;
   uint8_t mNodeWeight;
   timestamp_t mCHBeaconOffset;
   timestamp_t mLastBeaconTime;
   uint32_t mClusterLeafCount;
   uint32_t mLastBeaconChannel;
+  timestamp_t mSearchStartTime;
   timestamp_t mFirstBeaconTX;
   uint32_t mBeaconCount;
   volatile timer_t mBeaconTimerID;
