@@ -65,13 +65,7 @@ void Timer::changeInterval(timer_t timer, timestamp_t interval)
   if (pTo == NULL)
     _ERROR("Attempted to change periodicity of non-existent timer: %d", timer);
   
-  int64_t delta = interval - pTo->mInterval;
   pTo->mInterval = interval;
-  if (pTo->mTimestamp > getEnvironment()->getTimestamp() + 1)
-  {
-    reschedule(timer, pTo->mTimestamp + delta);
-  }
-  getEnvironment()->registerExecution(this, getGlobalTimeAtLocalTime(pTo->mTimestamp));
 }
 
 void Timer::abort(timer_t timer)
