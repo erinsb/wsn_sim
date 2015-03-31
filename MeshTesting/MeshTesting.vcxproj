@@ -129,6 +129,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ClusterMeshDev.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MeshDevice.cpp" />
     <ClCompile Include="MeshWSN.cpp" />
@@ -139,6 +140,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ClusterMeshDev.h" />
     <ClInclude Include="MeshDevice.h" />
     <ClInclude Include="MeshWSN.h" />
   </ItemGroup>

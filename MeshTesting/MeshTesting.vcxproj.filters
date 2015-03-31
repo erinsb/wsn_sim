@@ -24,12 +24,18 @@
     <ClCompile Include="MeshWSN.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ClusterMeshDev.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MeshDevice.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="MeshWSN.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ClusterMeshDev.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
