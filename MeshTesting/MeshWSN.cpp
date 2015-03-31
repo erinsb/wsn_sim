@@ -40,13 +40,13 @@ void MeshWSN::print(void)
   printf("Cluster heads: %d\n", mCHs);
   printf("Cluster head rate: %f\n", double(mCHs) / getDeviceCount());
   uint32_t loners = 0;
-  std::vector<MeshDevice*> clusterHeads;
+  std::vector<ClusterMeshDev*> clusterHeads;
   for (Device* pDev : mDevices)
   {
-    MeshDevice* pMDev = (MeshDevice*)pDev;
+    ClusterMeshDev* pMDev = (ClusterMeshDev*)pDev;
     if (pMDev->mNeighbors.size() == 0)
       ++loners;
-    if (pMDev->mIsCH)
+    if (pMDev->isCH())
       clusterHeads.push_back(pMDev);
   }
 
@@ -106,7 +106,7 @@ void MeshWSN::print(void)
 
   for (auto it = mDevices.begin(); it != mDevices.end(); it++)
   {
-    double usage = (*it)->getPowerUsageAvg(MESH_INTERVAL, getEnvironment()->getTimestamp(), peukert); // don't count the search
+    double usage = (*it)->getPowerUsageAvg(MESH_INTERVAL * 5, getEnvironment()->getTimestamp(), peukert); // don't count the search
     totPowerUsage += usage;
     if (usage > maxPowerUsage)
       maxPowerUsage = usage;
@@ -114,9 +114,9 @@ void MeshWSN::print(void)
       minPowerUsage = usage;
   }
   
-  totPowerUsage *= (getEnvironment()->getTimestamp() - MESH_INTERVAL) / 1000000.0 / HOURS; // nA -> mAh
-  maxPowerUsage *= (getEnvironment()->getTimestamp() - MESH_INTERVAL) / 1000000.0 / HOURS; // nA -> mAh
-  minPowerUsage *= (getEnvironment()->getTimestamp() - MESH_INTERVAL) / 1000000.0 / HOURS; // nA -> mAh
+  totPowerUsage *= (getEnvironment()->getTimestamp() - MESH_INTERVAL * 5) / 1000000.0 / HOURS; // nA -> mAh
+  maxPowerUsage *= (getEnvironment()->getTimestamp() - MESH_INTERVAL * 5) / 1000000.0 / HOURS; // nA -> mAh
+  minPowerUsage *= (getEnvironment()->getTimestamp() - MESH_INTERVAL * 5) / 1000000.0 / HOURS; // nA -> mAh
 
   printf("Avg power usage: %.5fmAh\n", totPowerUsage / mDevices.size());
   printf("Max power usage: %.5fmAh\n", maxPowerUsage);
