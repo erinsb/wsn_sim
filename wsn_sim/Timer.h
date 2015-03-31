@@ -49,7 +49,7 @@ public:
 
   timestamp_t getGlobalTimeAtLocalTime(timestamp_t time);
   timestamp_t getTimerTime(timestamp_t globalTime);
-
+  bool isValidTimer(timer_t timer);
 private:
   timestamp_t mDriftAnchor;
   double mDriftFactor;

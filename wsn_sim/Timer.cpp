@@ -156,6 +156,11 @@ timestamp_t Timer::getTimerTime(timestamp_t globalTime)
   return timestamp_t(mDriftFactor * (globalTime - mDriftAnchor) + mDriftAnchor);
 }
 
+bool Timer::isValidTimer(timer_t timer)
+{
+  return (getTimeoutStruct(timer) != NULL);
+}
+
 timestamp_t Timer::getGlobalTimeAtLocalTime(timestamp_t time)
 {
   return timestamp_t(mDriftAnchor + (time - mDriftAnchor) / mDriftFactor);
