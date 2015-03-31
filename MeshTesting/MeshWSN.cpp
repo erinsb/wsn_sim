@@ -1,4 +1,5 @@
 #include "MeshWSN.h"
+#include "ClusterMeshDev.h"
 
 
 MeshWSN::MeshWSN(void)
@@ -53,7 +54,7 @@ void MeshWSN::print(void)
 
   struct ch
   {
-    MeshDevice* pCH;
+    ClusterMeshDev* pCH;
     uint32_t conns;
   };
   std::vector<struct ch> clusterHeadSubscribers(clusterHeads.size());
@@ -63,10 +64,10 @@ void MeshWSN::print(void)
   {
     if (conn.symmetric)
       symmetric++;
-    MeshDevice* chsInConn[] = { (MeshDevice*)conn.pFirst, (MeshDevice*)conn.pSecond };
+    ClusterMeshDev* chsInConn[] = { (ClusterMeshDev*)conn.pFirst, (ClusterMeshDev*)conn.pSecond };
     for (uint8_t i = 0; i < 2; ++i)
     {
-      if (chsInConn[i]->mIsCH)
+      if (chsInConn[i]->isCH())
       {
         bool exists = false;
         for (struct ch& chs : clusterHeadSubscribers)
