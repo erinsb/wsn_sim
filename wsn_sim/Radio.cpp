@@ -60,7 +60,7 @@ void Radio::receive(void)
   }
   else
   {
-    _ERROR("Radio TX ordered outside IDLE state (state: %d)", mState);
+    _ERROR("Radio RX ordered outside IDLE state (state: %d)", mState);
   }
 }
 
