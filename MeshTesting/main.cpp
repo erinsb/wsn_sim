@@ -1,4 +1,4 @@
-#include "MeshDevice.h"
+#include "ClusterMeshDev.h"
 #include "WSN.h"
 #include "SimEnv.h"
 #include "Logger.h"
@@ -7,14 +7,17 @@
 #include "RandomLib\Random.hpp"
 #include <Windows.h>
 
-#define DEVICE_COUNT  (16)
-#define AREA_SIZE     (35.0)
-#define SIM_TIME      (3ULL * MINUTES)
+#define DEVICE_COUNT  (6)
+#define AREA_SIZE     (5.0)
+#define SIM_TIME      (30ULL * SECONDS)
 
 BOOL CtrlHandler(DWORD fdwCtrlType)
 {
   if (fdwCtrlType == CTRL_C_EVENT)
     exit(0);
+
+
+  return true;
 }
 
 
@@ -27,9 +30,9 @@ int main(void)
 
   SimEnv env;
   MeshWSN wsn;
-  std::vector<MeshDevice*> devices;
+  std::vector<ClusterMeshDev*> devices;
   RandomLib::Random randPlacer;
-  randPlacer.Reseed();
+  randPlacer.Reseed(4565);
 
   pLoggerSimEnv = &env;
   env.attachRunnable(&wsn);
@@ -38,8 +41,8 @@ int main(void)
 
   for (uint32_t i = 0; i < DEVICE_COUNT; ++i)
   {
-    MeshDevice* pDev = new MeshDevice("MESH_" + std::to_string(i), randPlacer.Float() * AREA_SIZE, randPlacer.Float() * AREA_SIZE);
-    pDev->setNodeWeight(i);
+    ClusterMeshDev* pDev = new ClusterMeshDev("MESH_" + std::to_string(i), randPlacer.Float() * AREA_SIZE, randPlacer.Float() * AREA_SIZE);
+    pDev->setScore(i);
     devices.push_back(pDev);
     wsn.addDevice(pDev);
     pDev->start();
@@ -59,14 +62,14 @@ int main(void)
 
   PowerPlotter plotter;
   uint32_t orphans = 0;
-  for (MeshDevice* pDev : devices)
+  for (ClusterMeshDev* pDev : devices)
   {
     //pDev->print();
     plotter.addDevice(pDev);
-    if (!pDev->hasClusterHead())
+    /*if (!pDev->hasClusterHead())
     {
       orphans++;
-    }
+    }*/
   }
   printf("Orphans: %d\n", orphans);
   wsn.print();
