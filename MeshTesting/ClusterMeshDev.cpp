@@ -57,6 +57,7 @@ ClusterMeshDev::ClusterMeshDev(std::string name, double x, double y)
   mName = name;
   pos.x = x;
   pos.y = y;
+  mInterval = MESH_INTERVAL;
 
   mMyCluster = NULL;
   mMyClusterOffset = 0;
@@ -404,6 +405,7 @@ void ClusterMeshDev::radioCallbackRx(RadioPacket* pPacket, uint8_t rx_strength, 
       if (otherClusterTrainAnchor > ownClusterTrainAnchor)
         ownClusterTrainAnchor += MESH_INTERVAL;
 
+      timestamp_t oldOffset = pCluster->mOffsetFromOwnClusterTrain;
       pCluster->mOffsetFromOwnClusterTrain = ownClusterTrainAnchor - otherClusterTrainAnchor;
 
       timestamp_t necessary_offset = min(pCluster->mClusterMax + 4, MESH_MAX_CLUSTER_SIZE) * MESH_CLUSTER_SLOT_US;
@@ -412,12 +414,29 @@ void ClusterMeshDev::radioCallbackRx(RadioPacket* pPacket, uint8_t rx_strength, 
       if (pCluster->mOffsetFromOwnClusterTrain < necessary_offset)
       {
         timestamp_t delta = necessary_offset - pCluster->mOffsetFromOwnClusterTrain;
+        timestamp_t approachSpeed = 0;
+
+        /* getting closer! */
+        if (oldOffset > pCluster->mOffsetFromOwnClusterTrain)
+        {
+          approachSpeed = oldOffset - pCluster->mOffsetFromOwnClusterTrain;
+        }
 
         if (isCH()) // take direct action
         {
           if (true || delta < MESH_MAX_CLOCK_DRIFT * MESH_INTERVAL) // safe to just nudge the train
           {
             mTimer->reschedule(mBeaconTimer, mTimer->getExpiration(mBeaconTimer) + delta);
+            //pCluster->mOffsetFromOwnClusterTrain += delta;
+
+            _MESHLOG(mName, "interval: %d", approachSpeed);
+            if (approachSpeed > 0 && approachSpeed < MESH_MAX_CLOCK_DRIFT_TWO_SIDED * MESH_INTERVAL)
+            {
+              mInterval += approachSpeed;
+              mTimer->changeInterval(mBeaconTimer, mInterval);
+              _MESHWARN(mName, "changed interval: %d", approachSpeed);
+            }
+
             _MESHWARN(mName, "Offset my cluster by %d", delta);
           }
           else // need to notify the cluster of an impending offset

@@ -107,6 +107,7 @@ private:
   timer_t mCurrentSubAbortTimer;
   bool mLeafScanTriggered;
   bool mJustFinishedLeafScan;
+  timestamp_t mInterval;
   timestamp_t mLastStateChange;
   std::queue<mesh_packet_t*> mPacketQueue;
   std::stack<mesh_packet_t> mDefaultPacket;
