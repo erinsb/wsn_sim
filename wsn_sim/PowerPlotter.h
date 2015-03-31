@@ -11,7 +11,7 @@ public:
   void specialKeys(int key, int x, int y);
 
   void toggleGrid(void);
-  void addDevice(Device* pDev) { mDevices.push_back(pDev); }
+  void addDevice(Device* pDev) { mDevices.push_back(pDev); mStartOffsets.push_back(0); }
   void displayGraph(timestamp_t startTime, timestamp_t endTime, Device* pDev = NULL);
 
   void DISPLAY(void); // don't use
@@ -20,7 +20,8 @@ public:
 private:
   int mGrid;
   std::vector<Device*> mDevices;
+  std::vector<uint32_t> mStartOffsets;
 
-  void plotDevice(Device* pDev);
+  void plotDevice(Device* pDev, uint32_t index);
 };
 

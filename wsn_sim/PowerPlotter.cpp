@@ -180,7 +180,7 @@ void PowerPlotter::DISPLAY(void)
   {
     subplot(mDevices.size(), 1, i + 1);
     this->ylabel(mDevices[i]->mName);
-    plotDevice(mDevices[i]);
+    plotDevice(mDevices[i], i);
     if (i == 0)
       ticklabel(1);
     else
@@ -189,7 +189,7 @@ void PowerPlotter::DISPLAY(void)
   }
 }
 
-void PowerPlotter::plotDevice(Device* pDev)
+void PowerPlotter::plotDevice(Device* pDev, uint32_t index)
 {
   auto evs = pDev->getPowerUsageEvents();
   mStartTime = max(0, int32_t(mStartTime));
@@ -198,7 +198,12 @@ void PowerPlotter::plotDevice(Device* pDev)
   dvec time;
 
   double currVal = 0.0;
-  auto it = evs.begin();
+  auto it = evs.begin() + mStartOffsets[index];
+  while (it->timestamp > mStartTime)
+  {
+    it = evs.begin() + (--mStartOffsets[index]);
+    currVal = it->power_mA;
+  }
 
   while (it != evs.end() && it->timestamp <= mStartTime) // find last point before start
   {
