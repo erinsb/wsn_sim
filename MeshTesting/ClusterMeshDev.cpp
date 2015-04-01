@@ -484,7 +484,7 @@ void ClusterMeshDev::radioCallbackRx(RadioPacket* pPacket, uint8_t rx_strength, 
       pCluster->mClusterMax = pMeshPacket->payload.str.payload.default.ch_fields.clusterMax;
     }
     // cluster train collision avoidance
-    if (mMyCluster != NULL)
+    if (mMyCluster != NULL && pCluster != mMyCluster)
     {
       // store cluster train offset from our own
       timestamp_t ownClusterTrainAnchor = getClusterTime();
@@ -908,7 +908,8 @@ void ClusterMeshDev::adjustPacing(void)
 
   if (pNearestCluster->mOffsetFromOwnClusterTrain < MESH_INTERVAL * 0.4 && 
     pNearestCluster->mApproachSpeed > 0 && 
-    pNearestCluster->mApproachSpeed < MESH_INTERVAL * MESH_MAX_CLOCK_DRIFT_TWO_SIDED)
+    pNearestCluster->mApproachSpeed < MESH_INTERVAL * MESH_MAX_CLOCK_DRIFT_TWO_SIDED &&
+    abs((int64_t)(mInterval + pNearestCluster->mApproachSpeed) - (int64_t)MESH_INTERVAL) < MESH_MAX_CLOCK_DRIFT_TWO_SIDED)
   {
     mInterval += pNearestCluster->mApproachSpeed;
     mTimer->changeInterval(mBeaconTimer, mInterval);
