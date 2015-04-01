@@ -29,12 +29,14 @@ extern SimEnv* pLoggerSimEnv;
   LOG_COLOR_RESET; \
   printf("[%s:L%d][@%llu]: " str "\n", __PRETTY_FILE__, __LINE__, \
   ((pLoggerSimEnv != NULL) ? pLoggerSimEnv->getTimestamp() : 0ULL), __VA_ARGS__); \
+  fflush(stdout); \
 } while (0)
 
 #define _ERROR(str, ...) do {\
   LOG_COLOR(FOREGROUND_RED | FOREGROUND_INTENSITY); \
   printf("[%s:L%d][@%llu][ERROR]: " str "\n", __PRETTY_FILE__, __LINE__, \
   ((pLoggerSimEnv != NULL) ? pLoggerSimEnv->getTimestamp() : 0ULL), __VA_ARGS__); \
+  fflush(stdout); \
   system("pause"); exit(0); \
   } while (0)
 
@@ -43,6 +45,7 @@ extern SimEnv* pLoggerSimEnv;
   LOG_COLOR(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY);\
   printf("[%s:L%d][@%llu][WARN]: " str "\n", __PRETTY_FILE__, __LINE__,\
   ((pLoggerSimEnv != NULL)? pLoggerSimEnv->getTimestamp() : 0ULL), __VA_ARGS__);\
+  fflush(stdout);\
   LOG_COLOR_RESET; } while(0)
 #else
 #define _LOG(str, ...) (void)0
