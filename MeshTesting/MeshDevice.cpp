@@ -61,6 +61,26 @@ uint32_t mesh_packet_t::getPayloadLength(void)
   }
 }
 
+bool mesh_packet_t::indicatesClusterScan(void)
+{
+  switch (payload.str.adv_type)
+  {
+    case MESH_ADV_TYPE_CH_HEADCOUNT:
+    case MESH_ADV_TYPE_CLOSEST_NEIGHBOR:
+      return true;
+    case MESH_ADV_TYPE_DEFAULT:
+      return (payload.str.payload.default.ch_fields.headCount);
+    default:  
+      return false;
+  }
+}
+
+
+mesh_packet_t::mesh_packet_t(void)
+{
+  memset(this, 0, sizeof(mesh_packet_t));
+}
+
 bool msgIDcache_t::hasID(msgID_t msgID)
 {
   if (msgID == 0)
@@ -115,6 +135,7 @@ void MeshNeighbor::receivedBeacon(timestamp_t rxTime, mesh_packet_t* beacon, uin
       mClusterHead.set(beacon->payload.str.payload.sleeping.clusterAddr);
       break;
     case MESH_ADV_TYPE_JOIN_CLUSTER:
+    case MESH_ADV_TYPE_CH_HEADCOUNT:
       mClusterHead.set(mAdvAddr); // must be clusterhead
       break;
     default:
