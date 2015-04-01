@@ -192,7 +192,7 @@ void PowerPlotter::DISPLAY(void)
 void PowerPlotter::plotDevice(Device* pDev, uint32_t index)
 {
   auto evs = pDev->getPowerUsageEvents();
-  mStartTime = max(0, int32_t(mStartTime));
+  mStartTime = max(0, mStartTime);
   mEndTime = min(pDev->getEnvironment()->getTimestamp(), mEndTime);
   dvec power;
   dvec time;

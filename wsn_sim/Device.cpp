@@ -36,6 +36,9 @@ double Device::getDistanceTo(Device& device) const
 
 void Device::registerPowerDrain(double power_mA)
 {
+  // avoid power registration when dealing with extremely long simulations
+  if (getEnvironment()->getTotalSimTime() > 10 * HOURS)
+    return;
   powerMut.lock();
   if (powerUsage.size() == 0)
   {
