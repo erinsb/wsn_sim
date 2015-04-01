@@ -9,7 +9,7 @@
 
 #define SORTED_EXECUTION_LIST (1)
 
-SimEnv::SimEnv(void) : mReportRate(0), mLastReport(0)
+SimEnv::SimEnv(void) : mReportRate(0), mLastReport(0), mStopTime(0)
 {
   mTime = 0;
 #if USE_THREADS
@@ -67,6 +67,7 @@ uint32_t SimEnv::numberOfRunnables(void) const
 
 void SimEnv::run(timestamp_t stopTime, timestamp_t deltaTime)
 {
+  mStopTime = stopTime;
 #if USE_THREADS
   uint32_t index = 0;
   while (mTempRunnables.size() > 0)

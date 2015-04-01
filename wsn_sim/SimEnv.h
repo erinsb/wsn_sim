@@ -36,6 +36,7 @@ public:
 
   void run(timestamp_t stopTime = UINT32_MAX, timestamp_t deltaTime = 1);
   void registerExecution(Runnable* executor, timestamp_t timestamp);
+  timestamp_t getTotalSimTime(void) { return mStopTime; }
 
 private:
   typedef struct
@@ -60,7 +61,8 @@ private:
   bool mExecutionListInvalidated = false;
   timestamp_t mReportRate;
   timestamp_t mLastReport;
-
+  timestamp_t mStopTime;
+  
   void step(timestamp_t stopTime);
 };
 
