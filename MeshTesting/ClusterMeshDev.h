@@ -23,18 +23,21 @@ typedef enum
 bool isScanningState(cluster_mesh_state_t state);
 std::string getStateString(cluster_mesh_state_t state);
 
+
 class MeshCluster
 {
 public:
-  MeshCluster(ble_adv_addr_t* pCHaddr) 
+  MeshCluster(ble_adv_addr_t* pCHaddr) : mDevices()
   { 
+    mClusterMax = 0;
     mCHaddr.set(*pCHaddr); 
-    memset(mDevices, 0, MESH_MAX_CLUSTER_SIZE * sizeof(MeshNeighbor*)); 
     mOffsetFromOwnClusterTrain = 0;
+    mApproachSpeed = 0;
   }
   ble_adv_addr_t mCHaddr;
   MeshNeighbor* mDevices[MESH_MAX_CLUSTER_SIZE];
   timestamp_t mOffsetFromOwnClusterTrain;
+  timestamp_t mApproachSpeed;
   uint8_t mClusterMax;
 
   bool contains(MeshNeighbor* pNb)
@@ -92,15 +95,17 @@ public:
   bool isCH(void) { return mState == CM_STATE_CH || mState == CM_STATE_CH_SCAN; }
 
   MeshCluster* getCluster(ble_adv_addr_t* pCHaddr);
+  timestamp_t getClusterTime(void);
   void setScore(uint8_t score) { mScore = score; }
   
 private:
   std::vector<MeshNeighbor*> mNeighbors;
   std::vector<MeshNeighbor*> mSubscriptions;
-  std::vector<MeshCluster> mClusters;
+  std::vector<MeshCluster*> mClusters;
   std::queue<MeshNeighbor*> mClusterReqs;
   MeshNeighbor* mClusterHead;
   MeshCluster* mMyCluster;
+  MeshCluster* mNextCluster;
   cluster_mesh_state_t mState;
   timer_t mBeaconTimer;
   timer_t mChTimer;
@@ -117,20 +122,25 @@ private:
 
   MeshNeighbor* getBestNb(std::function<bool(MeshNeighbor*)> filterFunc = NULL);
   MeshNeighbor* getNb(ble_adv_addr_t* pAdvAddr);
+  MeshCluster* getNearestCluster(void);
 
   virtual void radioCallbackTx(RadioPacket* pPacket);
   virtual void radioCallbackRx(RadioPacket* pPacket, uint8_t rx_strength, bool corrupted);
 
   void processPacket(mesh_packet_t* pMeshPacket);
   void radioBeaconTX(void);
-  void radioSubRX(MeshNeighbor* pNb, bool noDrift = false);
+  void radioSubRX(MeshNeighbor* volatile pNb, bool noDrift = false);
   void orderRestOfCluster(MeshCluster* pCluster, uint32_t anchorIndex, timestamp_t anchorTimestamp);
+  void scanCluster(MeshCluster* pCluster, uint32_t anchorIndex, timestamp_t anchorTimestamp);
+  void adjustPacing(void);
+  void setCluster(MeshCluster* pCluster);
+
   bool isSubscribedToCluster(MeshCluster* pCluster);
 
   void setState(cluster_mesh_state_t state);
-  
 
   void transmitClusterjoin(void);
   void transmitClusterReq(void);
+  void transmitNearestClusterUpdate(MeshCluster* pNearestCluster);
 };
 
