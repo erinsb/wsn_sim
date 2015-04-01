@@ -41,6 +41,7 @@
 #define MESH_PACKET_OVERHEAD_DIST_REQ     (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint16_t))
 #define MESH_PACKET_OVERHEAD_DIST_RSP     (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint32_t))
 #define MESH_PACKET_OVERHEAD_CLUSTER_REQ  (1 * BLE_ADV_ADDR_LEN)
+#define MESH_PACKET_OVERHEAD_CLOSEST_NB   (1 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint32_t))
 
 #define _MESHLOG(name, str, ...) _LOG("[%s] " str, name.c_str(), __VA_ARGS__)
 #define _MESHWARN(name, str, ...) _WARN("[%s] " str, name.c_str(), __VA_ARGS__)
@@ -57,8 +58,10 @@ typedef enum
   MESH_ADV_TYPE_RAW = 0x50,
   MESH_ADV_TYPE_DEFAULT,                // fallback packet for when packet queue is empty
   MESH_ADV_TYPE_CH_HEADCOUNT,           // CH requires leaf nodes to respond 
-  MESH_ADV_TYPE_CLUSTER_REQ,
-  MESH_ADV_TYPE_JOIN_CLUSTER,
+  MESH_ADV_TYPE_CLUSTER_REQ,            // request to join cluster train
+  MESH_ADV_TYPE_JOIN_CLUSTER,           // CH commanding leafnodes to place themselves in the cluster train
+  MESH_ADV_TYPE_NUDGE_CLUSTER,          // CH notification that the cluster timing will be moved
+  MESH_ADV_TYPE_CLOSEST_NEIGHBOR,       // report to cluster head about the individual nodes' nearest neighbor's speed
   MESH_ADV_TYPE_SLEEPING,               // node is falling asleep
   MESH_ADV_TYPE_WAKEUP,                 // request to wake up nodes
   MESH_ADV_TYPE_CORRUPTION_NOTIFICATION,// a corrupted package was registered in the network
@@ -74,7 +77,9 @@ typedef enum
 
 typedef uint16_t msgID_t;
 
-typedef struct
+typedef struct mesh_packet_t mesh_packet_t;
+
+struct mesh_packet_t
 {
   uint32_t access_addr;
   ble_packet_header_t header;
@@ -112,6 +117,17 @@ typedef struct
           uint8_t first_slot;
           ble_adv_addr_t node[4];
         } join_cluster;
+        struct
+        {
+          uint32_t offset_us;
+          uint8_t new_channel;
+        } nudge_cluster;
+        struct
+        {
+          ble_adv_addr_t neighbor_ch;
+          uint32_t offset_us;
+          uint32_t approach_speed;
+        } closest_neighbor;
         struct
         {
           ble_adv_addr_t clusterAddr; // address of cluster head
@@ -174,8 +190,10 @@ typedef struct
   }payload;
 
   uint32_t getPayloadLength(void);
+  bool indicatesClusterScan(void);
+  mesh_packet_t(void);
 
-} mesh_packet_t;
+};
 #pragma pack(pop)
 
 
