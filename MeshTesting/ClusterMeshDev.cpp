@@ -663,25 +663,7 @@ void ClusterMeshDev::processPacket(mesh_packet_t* pMeshPacket)
 void ClusterMeshDev::radioBeaconTX(void)
 {
   bool transmitBeacon = mPacketQueue.empty();
-  if (transmitBeacon)
-  {
-    if (isCH())
-      mDefaultPacket.top().payload.str.payload.default.clusterAddr.set(mAdvAddr);
-    else if (mClusterHead != NULL)
-      mDefaultPacket.top().payload.str.payload.default.clusterAddr.set(mClusterHead->mAdvAddr);
-    else
-      mDefaultPacket.top().payload.str.payload.default.clusterAddr.clear();
-
-    mDefaultPacket.top().adv_addr.set(mAdvAddr);
-    mDefaultPacket.top().payload.str.payload.default.ch_fields = { 0 };
-    mDefaultPacket.top().payload.str.payload.default.ch_fields.isScanning = isScanningState(mState);
-    mDefaultPacket.top().payload.str.payload.default.ch_fields.clusterMax = ((mMyCluster != NULL)? mMyCluster->getLastDeviceIndex() : 0);
-    mDefaultPacket.top().payload.str.payload.default.nodeWeight = mScore;
-    mDefaultPacket.top().payload.str.payload.default.offsetFromCH = mMyClusterOffset;
-    mDefaultPacket.top().header.length = MESH_PACKET_OVERHEAD_DEFAULT;
-    mRadio->setPacket((uint8_t*)&mDefaultPacket.top(), MESH_PACKET_OVERHEAD + mDefaultPacket.top().header.length);
-  }
-  else
+  if (!transmitBeacon)
   {
     mesh_packet_t* pPacket = mPacketQueue.front();
     mPacketQueue.pop();
@@ -755,6 +737,7 @@ void ClusterMeshDev::radioBeaconTX(void)
 
 
     mRadio->setPacket((uint8_t*)pPacket, MESH_PACKET_OVERHEAD + pPacket->header.length);
+    delete pPacket; // radio takes a copy
   }
   if (transmitBeacon)
   {
