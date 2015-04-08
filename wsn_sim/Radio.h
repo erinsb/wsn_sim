@@ -66,6 +66,10 @@ public:
 
   state_t getState(void) const { return mState; }
   uint8_t getSignalStrength(void) const { return mSigStrength; }
+  double getTotalDutyCycle(void) { return (double)(mTotalTxTime + mTotalRxTime) / getEnvironment()->getTimestamp(); }
+  double getTxDutyCycle(void) { return (double)(mTotalTxTime) / getEnvironment()->getTimestamp(); }
+  double getRxDutyCycle(void) { return (double)(mTotalRxTime) / getEnvironment()->getTimestamp(); }
+
   bool rxInProgress(void);
   timestamp_t getTxTime(uint32_t packet_length)
   { 
@@ -95,10 +99,13 @@ private:
   WSN* mWSN;
   timestamp_t mTurnaroundTime_us;
   uint32_t mBitrate;
+  timestamp_t mLastActionTime;
   timestamp_t mNextActionTime;
   uint8_t mTifs_us;
   uint8_t mSigStrength;
   uint32_t mChannel;
+  timestamp_t mTotalTxTime;
+  timestamp_t mTotalRxTime;
   std::function<bool(RadioPacket*)> mFilterFunc;
 
   static const double powerProfile[7];

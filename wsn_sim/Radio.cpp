@@ -26,7 +26,9 @@ Radio::Radio(Device* device, uint8_t sigStrength, timestamp_t turnaroundTime_us,
   mBitrate(bitrate),
   mState(RADIO_STATE_IDLE),
   mShort(SHORT_DISABLED), 
-  mNextActionTime(100000)
+  mNextActionTime(100000),
+  mTotalTxTime(0),
+  mTotalRxTime(0)
 {
   // can't be faster than hardware allows
   mTifs_us = (tifs_us > turnaroundTime_us) ? tifs_us : turnaroundTime_us;
@@ -196,6 +198,11 @@ void Radio::shortToNextState(void)
 
 void Radio::setState(state_t newState)
 {
+  if (mState == RADIO_STATE_RX)
+    mTotalRxTime += getEnvironment()->getTimestamp() - mLastActionTime;
+  else if (mState == RADIO_STATE_TX)
+    mTotalTxTime += getEnvironment()->getTimestamp() - mLastActionTime;
+  mLastActionTime = getEnvironment()->getTimestamp();
   mDevice->removePowerDrain(powerProfile[mState]);  
   mDevice->registerPowerDrain(powerProfile[newState]);
   mState = newState;

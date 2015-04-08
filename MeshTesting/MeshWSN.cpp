@@ -99,6 +99,14 @@ void MeshWSN::print(void)
   printf("Useless CHs: %d\n", clusterHeadSubscribers.size() - clusterHeads.size());
   printf("Avg CH subs: %.2f\n", double(totalCHSubs) / clusterHeads.size());
 
+  double totalRadioDutyCycle = 0.0;
+  for (Device* pDev : mDevices)
+  {
+    totalRadioDutyCycle += pDev->getRadio()->getTotalDutyCycle();
+  }
+  printf("Average radio duty cycle: %.2f%%\n", totalRadioDutyCycle / double(mDevices.size()) * 100.0);
+
+
   double totPowerUsage = 0.0;
   double maxPowerUsage = 0.0;
   double minPowerUsage = 100000000.0;
