@@ -1,6 +1,8 @@
 #include "MeshWSN.h"
 #include "ClusterMeshDev.h"
 
+#define MESH_STABILIZATION_TIME   (20 * MESH_INTERVAL)
+
 
 MeshWSN::MeshWSN(void)
 {
@@ -114,7 +116,7 @@ void MeshWSN::print(void)
 
   for (auto it = mDevices.begin(); it != mDevices.end(); it++)
   {
-    double usage = (*it)->getPowerUsageAvg(MESH_INTERVAL * 5, getEnvironment()->getTimestamp(), peukert); // don't count the search
+    double usage = (*it)->getPowerUsageAvg(MESH_STABILIZATION_TIME, getEnvironment()->getTimestamp(), peukert); // don't count the search
     totPowerUsage += usage;
     if (usage > maxPowerUsage)
       maxPowerUsage = usage;
@@ -122,9 +124,9 @@ void MeshWSN::print(void)
       minPowerUsage = usage;
   }
   
-  totPowerUsage *= (getEnvironment()->getTimestamp() - MESH_INTERVAL * 5) / 1000000.0 / HOURS; // nA -> mAh
-  maxPowerUsage *= (getEnvironment()->getTimestamp() - MESH_INTERVAL * 5) / 1000000.0 / HOURS; // nA -> mAh
-  minPowerUsage *= (getEnvironment()->getTimestamp() - MESH_INTERVAL * 5) / 1000000.0 / HOURS; // nA -> mAh
+  totPowerUsage *= (getEnvironment()->getTimestamp() - MESH_STABILIZATION_TIME) / 1000000.0 / HOURS; // nA -> mAh
+  maxPowerUsage *= (getEnvironment()->getTimestamp() - MESH_STABILIZATION_TIME) / 1000000.0 / HOURS; // nA -> mAh
+  minPowerUsage *= (getEnvironment()->getTimestamp() - MESH_STABILIZATION_TIME) / 1000000.0 / HOURS; // nA -> mAh
 
   printf("Avg power usage: %.5fmAh\n", totPowerUsage / mDevices.size());
   printf("Max power usage: %.5fmAh\n", maxPowerUsage);
