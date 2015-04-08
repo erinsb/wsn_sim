@@ -38,12 +38,12 @@ public:
   virtual void step(timestamp_t timestamp);
 
   //power
-  void registerPowerDrain(double power_mA);
+  void registerPowerDrain(double power_mA, timestamp_t time = TIME_MAX);
   void removePowerDrain(double power_mA);
-  std::vector<double> getPowerUsage(timestamp_t firstSample = 0, timestamp_t lastSample = UINT64_MAX) const;
+  std::vector<double> getPowerUsage(timestamp_t firstSample = 0, timestamp_t lastSample = TIME_MAX) const;
   std::vector<powerEvent_t> getPowerUsageEvents(void) { return powerUsage; }
-  double getPowerUsageAvg(timestamp_t firstSample = 0, timestamp_t lastSample = UINT64_MAX, double paukert = 1.0) const;
-  void plotPower(timestamp_t startTime = 0, timestamp_t endTime = UINT64_MAX);
+  double getPowerUsageAvg(timestamp_t firstSample = 0, timestamp_t lastSample = TIME_MAX, double paukert = 1.0) const;
+  void plotPower(timestamp_t startTime = 0, timestamp_t endTime = TIME_MAX);
 
   typedef struct
   {

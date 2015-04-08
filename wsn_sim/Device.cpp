@@ -34,23 +34,41 @@ double Device::getDistanceTo(Device& device) const
 }
 
 
-void Device::registerPowerDrain(double power_mA)
+void Device::registerPowerDrain(double power_mA, timestamp_t time)
 {
   // avoid power registration when dealing with extremely long simulations
   if (getEnvironment()->getTotalSimTime() > 10 * HOURS)
     return;
+
+  if (time == TIME_MAX)
+  {
+    time = getEnvironment()->getTimestamp();
+  }
   powerMut.lock();
+
+  auto eventBeforeThis = powerUsage.rbegin();
+  while (eventBeforeThis != powerUsage.rend() && eventBeforeThis->timestamp > time)
+    eventBeforeThis++;
+
   if (powerUsage.size() == 0)
   {
-    powerUsage.push_back(powerEvent_t{ power_mA, getEnvironment()->getTimestamp() });
+    powerUsage.push_back(powerEvent_t{ power_mA, time });
   }
-  else if (powerUsage.back().timestamp == getEnvironment()->getTimestamp())
+  else if (powerUsage.back().timestamp < time)
+  {
+    powerUsage.push_back(powerEvent_t{ powerUsage.back().power_mA + power_mA, time });
+  }
+  else if (powerUsage.back().timestamp == time)
   {
     powerUsage.back().power_mA += power_mA;
   }
-  else
+  else if (eventBeforeThis->timestamp == time)
   {
-    powerUsage.push_back(powerEvent_t{ powerUsage.back().power_mA + power_mA, getEnvironment()->getTimestamp() });
+    eventBeforeThis->power_mA += power_mA;
+  }
+  else 
+  {
+    powerUsage.insert(eventBeforeThis.base() + 1, powerEvent_t{ eventBeforeThis->power_mA + power_mA, time });
   }
   powerMut.unlock();
 }
