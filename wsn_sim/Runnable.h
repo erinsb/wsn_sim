@@ -3,6 +3,8 @@
 
 typedef uint64_t timestamp_t;
 
+#define TIME_MAX  UINT64_MAX
+
 #include "SimEnv.h"
 #include <stdlib.h>
 
