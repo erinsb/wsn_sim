@@ -8,7 +8,7 @@
 #include <stdint.h>
 #include <stdarg.h>
 
-#define MESH_INTERVAL               (100L*MS)
+#define MESH_INTERVAL               (100ULL*MS)
 #define MESH_MAX_SUBSCRIPTIONS      (8)
 #define MESH_OPTIMAL_SUBSCRIPTIONS  (4)
 #define MESH_MAX_LOSS_COUNT         (6)
@@ -23,6 +23,7 @@
 #define MESH_RX_RU_TIME             (150L)       
 #define MESH_TX_RU_TIME             (RADIO_DEFAULT_TURNAROUND)       
 #define MESH_RX_LISTEN_TIME         (380 + MESH_RX_RU_TIME)
+#define MESH_RX_SAFETY_MARGIN       (40)
 #define MESH_ROUTE_TIMEOUT          (1*MINUTES) //time before a route is deemed invalid
 #define MESH_ACCESS_ADDR            (0xC0221E55)
 #define MESH_MESSAGE_ID_CACHE_SIZE  (16)
@@ -31,17 +32,18 @@
 #define MESH_BEACON_JITTER_US       (0)
 #define MESH_MAX_CLUSTER_SIZE       (32)
 
-#define MESH_PACKET_OVERHEAD              (sizeof(uint32_t) + sizeof(ble_packet_header_t) + BLE_ADV_ADDR_LEN + sizeof(uint8_t) + sizeof(uint8_t) + sizeof(msgID_t))
-#define MESH_PACKET_OVERHEAD_UNICAST      (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint32_t))
-#define MESH_PACKET_OVERHEAD_BROADCAST    (BLE_ADV_ADDR_LEN + sizeof(uint16_t))
-#define MESH_PACKET_OVERHEAD_NBNOT        (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint8_t))
-#define MESH_PACKET_OVERHEAD_DEFAULT      (BLE_ADV_ADDR_LEN + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t))
-#define MESH_PACKET_OVERHEAD_JOIN_CLUSTER (1 + 4 * BLE_ADV_ADDR_LEN)
-#define MESH_PACKET_OVERHEAD_SLEEPING     (BLE_ADV_ADDR_LEN + sizeof(uint16_t))
-#define MESH_PACKET_OVERHEAD_DIST_REQ     (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint16_t))
-#define MESH_PACKET_OVERHEAD_DIST_RSP     (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint32_t))
-#define MESH_PACKET_OVERHEAD_CLUSTER_REQ  (1 * BLE_ADV_ADDR_LEN)
-#define MESH_PACKET_OVERHEAD_CLOSEST_NB   (1 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint32_t))
+#define MESH_PACKET_OVERHEAD                (sizeof(uint32_t) + sizeof(ble_packet_header_t) + BLE_ADV_ADDR_LEN + sizeof(uint8_t) + sizeof(uint8_t) + sizeof(msgID_t))
+#define MESH_PACKET_OVERHEAD_UNICAST        (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint32_t))
+#define MESH_PACKET_OVERHEAD_BROADCAST      (BLE_ADV_ADDR_LEN + sizeof(uint16_t))
+#define MESH_PACKET_OVERHEAD_NBNOT          (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint8_t))
+#define MESH_PACKET_OVERHEAD_DEFAULT        (BLE_ADV_ADDR_LEN + sizeof(uint16_t) + sizeof(uint8_t) + sizeof(uint8_t))
+#define MESH_PACKET_OVERHEAD_JOIN_CLUSTER   (1 + 4 * BLE_ADV_ADDR_LEN)
+#define MESH_PACKET_OVERHEAD_NUDGE_CLUSTER  (4 + 1)
+#define MESH_PACKET_OVERHEAD_SLEEPING       (BLE_ADV_ADDR_LEN + sizeof(uint16_t))
+#define MESH_PACKET_OVERHEAD_DIST_REQ       (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint16_t))
+#define MESH_PACKET_OVERHEAD_DIST_RSP       (2 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint32_t))
+#define MESH_PACKET_OVERHEAD_CLUSTER_REQ    (1 * BLE_ADV_ADDR_LEN)
+#define MESH_PACKET_OVERHEAD_CLOSEST_NB     (1 * BLE_ADV_ADDR_LEN + sizeof(uint32_t) + sizeof(uint32_t))
 
 #define _MESHLOG(name, str, ...) _LOG("[%s] " str, name.c_str(), __VA_ARGS__)
 #define _MESHWARN(name, str, ...) _WARN("[%s] " str, name.c_str(), __VA_ARGS__)
