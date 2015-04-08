@@ -3,6 +3,18 @@
 
 #define MESH_STABILIZATION_TIME   (20 * MESH_INTERVAL)
 
+#define BATTERY_CR2032_COIN       (0)
+#define BATTERY_2XE91_AA          (1)
+
+#define BATTERY                   (BATTERY_2XE91_AA)
+
+#if (BATTERY == BATTERY_CR2032_COIN)
+#define BATTERY_CAPACITY_mAh      (240.0) 
+#define BATTERY_DRAINAGE_TIME_h   (1263.0)
+#elif (BATTERY == BATTERY_2XE91_AA)
+#define BATTERY_CAPACITY_mAh      (2500.0)
+#define BATTERY_DRAINAGE_TIME_h   (250.0)
+#endif
 
 MeshWSN::MeshWSN(void)
 {
@@ -112,7 +124,7 @@ void MeshWSN::print(void)
   double totPowerUsage = 0.0;
   double maxPowerUsage = 0.0;
   double minPowerUsage = 100000000.0;
-  double peukert = 1.15;
+  double peukert = 1.05;
 
   for (auto it = mDevices.begin(); it != mDevices.end(); it++)
   {
@@ -124,16 +136,16 @@ void MeshWSN::print(void)
       minPowerUsage = usage;
   }
   
-  totPowerUsage *= (getEnvironment()->getTimestamp() - MESH_STABILIZATION_TIME) / 1000000.0 / HOURS; // nA -> mAh
-  maxPowerUsage *= (getEnvironment()->getTimestamp() - MESH_STABILIZATION_TIME) / 1000000.0 / HOURS; // nA -> mAh
-  minPowerUsage *= (getEnvironment()->getTimestamp() - MESH_STABILIZATION_TIME) / 1000000.0 / HOURS; // nA -> mAh
+  totPowerUsage *= (getEnvironment()->getTimestamp() - MESH_STABILIZATION_TIME) / HOURS; // mA -> mAh
+  maxPowerUsage *= (getEnvironment()->getTimestamp() - MESH_STABILIZATION_TIME) / HOURS; // mA -> mAh
+  minPowerUsage *= (getEnvironment()->getTimestamp() - MESH_STABILIZATION_TIME) / HOURS; // mA -> mAh
 
   printf("Avg power usage: %.5fmAh\n", totPowerUsage / mDevices.size());
   printf("Max power usage: %.5fmAh\n", maxPowerUsage);
   printf("Min power usage: %.5fmAh\n", minPowerUsage);
 
-  timestamp_t firstDeath = pow(240.0 / 1000.0, peukert) / (maxPowerUsage * pow(1263.0, peukert)); // in hours
-  timestamp_t lastDeath = pow(240.0 / 1000.0, peukert) / (minPowerUsage * pow(1263.0, peukert)); // in hours
+  timestamp_t firstDeath = BATTERY_DRAINAGE_TIME_h * (pow(BATTERY_CAPACITY_mAh, peukert) / pow(maxPowerUsage * BATTERY_DRAINAGE_TIME_h, peukert)); // in hours
+  timestamp_t lastDeath  = BATTERY_DRAINAGE_TIME_h * (pow(BATTERY_CAPACITY_mAh, peukert) / pow(minPowerUsage * BATTERY_DRAINAGE_TIME_h, peukert)); // in hours
 
   printf("First dead node: %d years, %d days and %d hours\n", uint32_t(firstDeath / (24ULL * 365ULL)), uint32_t((firstDeath / 24ULL) % 365ULL), uint32_t(firstDeath % 24ULL));
   printf("Last dead node: %d years, %d days and %d hours\n", uint32_t(lastDeath / (24ULL * 365ULL)), uint32_t((lastDeath / 24ULL) % 365ULL), uint32_t(lastDeath % 24ULL));
