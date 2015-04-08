@@ -34,12 +34,12 @@ public:
   { 
     mClusterMax = 0;
     mCHaddr.set(*pCHaddr); 
-    mOffsetFromOwnClusterTrain = 0;
+    mLastCHBeacon = 0;
     mApproachSpeed = 0;
   }
   ble_adv_addr_t mCHaddr;
   MeshNeighbor* mDevices[MESH_MAX_CLUSTER_SIZE];
-  timestamp_t mOffsetFromOwnClusterTrain;
+  timestamp_t mLastCHBeacon;
   int32_t mApproachSpeed;
   uint8_t mClusterMax;
 
@@ -80,6 +80,12 @@ public:
         return i;
     }
     return 0;
+  }
+
+  // Get distance to next beacon after reference
+  timestamp_t getOffset(timestamp_t reference)
+  {
+    return mLastCHBeacon + MESH_INTERVAL * (int64_t(reference - mLastCHBeacon) / MESH_INTERVAL + 1 * (reference > mLastCHBeacon)) - reference;
   }
 
   int64_t absoluteOffset(void)
