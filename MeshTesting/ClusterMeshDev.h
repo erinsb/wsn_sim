@@ -5,9 +5,11 @@
 #include "Radio.h"
 #include <stack>
 
-#define MESH_MAX_CLUSTER_SIZE (32)
-#define MESH_CLUSTER_SLOT_US  (625)
-#define MESH_LEAF_SCAN_WAIT   (MESH_INTERVAL * 10 + MESH_INTERVAL / 2)
+#define MESH_MAX_CLUSTER_SIZE             (32)
+#define MESH_CLUSTER_SLOT_US              (625)
+#define MESH_LEAF_SCAN_WAIT               (MESH_INTERVAL * 10 + MESH_INTERVAL / 2)
+#define MESH_LEAF_SCAN_INTERVAL_MIN       (MESH_INTERVAL * 300)
+#define MESH_LEAF_SCAN_SCORE_MULTIPLIER   (10)
 
 typedef enum
 {
@@ -37,7 +39,7 @@ public:
   ble_adv_addr_t mCHaddr;
   MeshNeighbor* mDevices[MESH_MAX_CLUSTER_SIZE];
   timestamp_t mOffsetFromOwnClusterTrain;
-  timestamp_t mApproachSpeed;
+  int32_t mApproachSpeed;
   uint8_t mClusterMax;
 
   bool contains(MeshNeighbor* pNb)
@@ -48,6 +50,16 @@ public:
         return true;
     }
     return false;
+  }
+
+  uint32_t getIndexOf(MeshNeighbor* pNb)
+  {
+    for (uint32_t i = 0; i < MESH_MAX_CLUSTER_SIZE; ++i)
+    {
+      if (mDevices[i] == pNb)
+        return i;
+    }
+    return MESH_MAX_CLUSTER_SIZE;
   }
 
   uint32_t getFirstDeviceIndex(void)
@@ -67,6 +79,18 @@ public:
         return i;
     }
     return 0;
+  }
+
+  int64_t absoluteOffset(void)
+  {
+    if (mOffsetFromOwnClusterTrain > MESH_INTERVAL / 2)
+    {
+      return mOffsetFromOwnClusterTrain - MESH_INTERVAL;
+    }
+    else
+    {
+      return mOffsetFromOwnClusterTrain;
+    }
   }
 
   
@@ -122,7 +146,11 @@ private:
 
   MeshNeighbor* getBestNb(std::function<bool(MeshNeighbor*)> filterFunc = NULL);
   MeshNeighbor* getNb(ble_adv_addr_t* pAdvAddr);
+  MeshCluster* getLastClusterBefore(void);
   MeshCluster* getNearestCluster(void);
+  MeshCluster* getNextClusterAfter(timestamp_t startTime);
+  timestamp_t getNonCollidingOffset(timestamp_t begin, timestamp_t end);
+
 
   virtual void radioCallbackTx(RadioPacket* pPacket);
   virtual void radioCallbackRx(RadioPacket* pPacket, uint8_t rx_strength, bool corrupted);
@@ -134,6 +162,8 @@ private:
   void scanCluster(MeshCluster* pCluster, uint32_t anchorIndex, timestamp_t anchorTimestamp);
   void adjustPacing(void);
   void setCluster(MeshCluster* pCluster);
+  void nudgeCluster(timestamp_t offset);
+  void setupTimeOrientation(void);
 
   bool isSubscribedToCluster(MeshCluster* pCluster);
 
@@ -142,5 +172,6 @@ private:
   void transmitClusterjoin(void);
   void transmitClusterReq(void);
   void transmitNearestClusterUpdate(MeshCluster* pNearestCluster);
+  void transmitClusterNudge(timestamp_t offset, uint8_t new_channel);
 };
 

@@ -191,14 +191,10 @@ void ClusterMeshDev::becomeCH(void)
   mDevTag = DEVICE_TAG_MEDIUM;
 
   // order cluster time orientation with regular offsets
-  mTimer->orderPeriodic(MESH_INTERVAL * (6 + mRand(10)), MESH_INTERVAL * 20, 
+  mTimer->orderPeriodic(MESH_INTERVAL * (10 + mRand(10)), MESH_INTERVAL * 20, 
     [this](timestamp_t, void*)
   {
-    mesh_packet_t* pPacket = new mesh_packet_t(mDefaultPacket.top());
-    pPacket->payload.str.payload.default.ch_fields.headCount = 1;
-    mPacketQueue.push(pPacket);
-
-    mTimer->orderRelative(MESH_INTERVAL * 1.5, [=](timestamp_t, void*){ adjustPacing(); });
+    setupTimeOrientation();
   });
 }
 
@@ -355,27 +351,49 @@ MeshNeighbor* ClusterMeshDev::getNb(ble_adv_addr_t* pAdvAddr)
   return NULL;
 }
 
-MeshCluster* ClusterMeshDev::getNearestCluster(void)
+MeshCluster* ClusterMeshDev::getLastClusterBefore(void)
 {
   MeshCluster* pNearestCluster = NULL;
-  MeshCluster* pFastestCluster = NULL;
   for (MeshCluster* pCluster : mClusters)
   {
     if (pCluster != mMyCluster)
     {
-      if (pFastestCluster == NULL || pCluster->mApproachSpeed > pFastestCluster->mApproachSpeed)
-      {
-        pFastestCluster = pCluster;
-      }
       if (pNearestCluster == NULL || pCluster->mOffsetFromOwnClusterTrain < pNearestCluster->mOffsetFromOwnClusterTrain)
       {
         pNearestCluster = pCluster;
       }
     }
   }
-  if (pFastestCluster != NULL)
-    _MESHLOG(mName, "Fastest Cluster speed: %d", pFastestCluster->mApproachSpeed);
   return pNearestCluster;
+}
+
+
+MeshCluster* ClusterMeshDev::getNearestCluster(void)
+{
+  MeshCluster* pNearestCluster = NULL;
+  for (MeshCluster* pCluster : mClusters)
+  {
+    if (pCluster != mMyCluster &&
+      (pNearestCluster == NULL || pCluster->absoluteOffset() < pNearestCluster->absoluteOffset()))
+    {
+      pNearestCluster = pCluster;
+    }
+  }
+
+  return pNearestCluster;
+}
+
+MeshCluster* ClusterMeshDev::getNextClusterAfter(timestamp_t startTime)
+{
+  MeshCluster* pBestCluster = NULL;
+  for (MeshCluster* pCluster : mClusters)
+  {
+    if (pBestCluster == NULL || (pCluster->mOffsetFromOwnClusterTrain > startTime && pCluster->mOffsetFromOwnClusterTrain < pBestCluster->mOffsetFromOwnClusterTrain))
+    {
+      pBestCluster = pCluster;
+    }
+  }
+  return pBestCluster;
 }
 
 void ClusterMeshDev::radioCallbackTx(RadioPacket* pPacket)
@@ -415,6 +433,10 @@ void ClusterMeshDev::radioCallbackTx(RadioPacket* pPacket)
         );
       }
       );
+    }
+    else if (pMeshPacket->payload.str.adv_type == MESH_ADV_TYPE_NUDGE_CLUSTER)
+    {
+      nudgeCluster(pMeshPacket->payload.str.payload.nudge_cluster.offset_us);
     }
   }
 }
@@ -495,10 +517,8 @@ void ClusterMeshDev::radioCallbackRx(RadioPacket* pPacket, uint8_t rx_strength, 
 
       timestamp_t oldOffset = pCluster->mOffsetFromOwnClusterTrain;
       pCluster->mOffsetFromOwnClusterTrain = ownClusterTrainAnchor - otherClusterTrainAnchor;
-      if (oldOffset > pCluster->mOffsetFromOwnClusterTrain)
-      {
-        pCluster->mApproachSpeed = oldOffset - pCluster->mOffsetFromOwnClusterTrain;
-      }
+
+      pCluster->mApproachSpeed = oldOffset - (int32_t) pCluster->mOffsetFromOwnClusterTrain;
     }
     // setup any chained events
     if (pCluster->getFirstDeviceIndex() >= pSender->mBeaconOffset &&
@@ -611,12 +631,25 @@ void ClusterMeshDev::radioCallbackRx(RadioPacket* pPacket, uint8_t rx_strength, 
       {
         if (pMeshPacket->payload.str.payload.default.ch_fields.headCount)
         {
-          MeshCluster* pNearestCluster = getNearestCluster();
+          MeshCluster* pNearestCluster = getLastClusterBefore();
           if (pNearestCluster != NULL)
           {
-            _MESHLOG(mName, "Transmitting nearest cluster-packet");
             transmitNearestClusterUpdate(pNearestCluster);
           }
+        }
+      }
+      else if (pMeshPacket->payload.str.adv_type == MESH_ADV_TYPE_NUDGE_CLUSTER)
+      {
+        timestamp_t offset = pMeshPacket->payload.str.payload.nudge_cluster.offset_us;
+        if (pSender == mClusterHead)
+        {
+          nudgeCluster(offset);
+          transmitClusterNudge(offset, MESH_CHANNEL);
+        }
+        else if (pCluster != NULL && pCluster != mMyCluster)
+        {
+          MeshNeighbor* pFirstInCluster = pCluster->mDevices[pCluster->getFirstDeviceIndex()];
+          mTimer->reschedule(pFirstInCluster->mRxTimer, mTimer->getExpiration(pFirstInCluster->mRxTimer) + offset);
         }
       }
       break;
@@ -643,6 +676,21 @@ void ClusterMeshDev::radioCallbackRx(RadioPacket* pPacket, uint8_t rx_strength, 
            pNbCluster->mOffsetFromOwnClusterTrain = pMeshPacket->payload.str.payload.closest_neighbor.offset_us;
         }
           break;
+        case MESH_ADV_TYPE_NUDGE_CLUSTER:
+        {
+          timestamp_t offset = pMeshPacket->payload.str.payload.nudge_cluster.offset_us;
+          if (pCluster != NULL && pCluster != mMyCluster)
+          {
+            if (pCluster->mDevices[pCluster->getFirstDeviceIndex()] == pSender)
+            {
+              mTimer->reschedule(pSender->mRxTimer, mTimer->getExpiration(pSender->mRxTimer) + offset);
+            }
+            else
+            {
+              _MESHERROR(mName, "Attempt to nudge external cluster failed");
+            }
+          }
+        }
         default:
           break;
       }
@@ -826,7 +874,7 @@ void ClusterMeshDev::radioSubRX(MeshNeighbor* volatile pNb, bool noDrift)
       break;
   }
 
-  mCurrentSubAbortTimer = mTimer->orderRelative(MESH_RX_RU_TIME + MESH_ADDRESS_OFFSET_US + (!noDrift) * ((mTimer->getTimestamp() - pNb->mLastBeaconTime) * MESH_MAX_CLOCK_DRIFT_TWO_SIDED * 2),
+  mCurrentSubAbortTimer = mTimer->orderRelative(MESH_RX_RU_TIME + MESH_ADDRESS_OFFSET_US + MESH_RX_SAFETY_MARGIN + (!noDrift) * ((mTimer->getTimestamp() - pNb->mLastBeaconTime) * MESH_MAX_CLOCK_DRIFT_TWO_SIDED * 2),
     [=](timestamp_t timestamp, void*)
   {
     if (!mRadio->rxInProgress())
@@ -902,26 +950,50 @@ void ClusterMeshDev::adjustPacing(void)
   if (!isCH())
     _MESHERROR(mName, "Non-CH attempted to adjust pacing");
 
-  MeshCluster* pNearestCluster = getNearestCluster();
+  MeshCluster* pNearestCluster = getLastClusterBefore();
+  bool doNudge = false;
+
   if (pNearestCluster == NULL)
     return;
 
-  if (pNearestCluster->mOffsetFromOwnClusterTrain < MESH_INTERVAL * 0.4 && 
-    pNearestCluster->mApproachSpeed > 0 && 
-    pNearestCluster->mApproachSpeed < MESH_INTERVAL * MESH_MAX_CLOCK_DRIFT_TWO_SIDED &&
-    abs((int64_t)(mInterval + pNearestCluster->mApproachSpeed) - (int64_t)MESH_INTERVAL) < MESH_MAX_CLOCK_DRIFT_TWO_SIDED)
+  if (abs(pNearestCluster->absoluteOffset()) < MESH_INTERVAL * 0.3)
   {
-    mInterval += pNearestCluster->mApproachSpeed;
-    mTimer->changeInterval(mBeaconTimer, mInterval);
-    _MESHWARN(mName, "Adjusted pace by %d", pNearestCluster->mApproachSpeed);
-    pNearestCluster->mApproachSpeed = 0;
+    // DANGER ZONE
+    if (abs(pNearestCluster->mApproachSpeed) < (timestamp_t)(MESH_INTERVAL * MESH_MAX_CLOCK_DRIFT_TWO_SIDED) &&
+      abs((int64_t)mInterval + pNearestCluster->mApproachSpeed - (int64_t) MESH_INTERVAL) < MESH_INTERVAL * MESH_MAX_CLOCK_DRIFT_TWO_SIDED)
+    {
+      mInterval += pNearestCluster->mApproachSpeed;
+      mTimer->changeInterval(mBeaconTimer, mInterval);
+      pNearestCluster->mApproachSpeed = 0;
+    }
+    else if (pNearestCluster->mOffsetFromOwnClusterTrain < 10*MS)
+    {
+      // dodge the approaching train
+      doNudge = true;
+    }
   }
   else
   {
-    _MESHWARN(mName, "Failed to adjust pace:\n\toffset: %d, speed = %d", 
-      pNearestCluster->mOffsetFromOwnClusterTrain,
-      pNearestCluster->mApproachSpeed);
+    // slowly recover from previous adjustments. Will cause "bouncing" effect in trains.
+    if (mInterval != MESH_INTERVAL)
+    {
+      mInterval += (mInterval > MESH_INTERVAL)? -1 : 1;
+      mTimer->changeInterval(mBeaconTimer, mInterval);
+    }
+    // nudge for colliding cluster
+    if (pNearestCluster->mOffsetFromOwnClusterTrain < 2 * MS + pNearestCluster->mClusterMax * MESH_CLUSTER_SLOT_US)
+    {
+      doNudge = true;
+    }
   }
+
+  if (doNudge)
+  {
+    timestamp_t offset = getNonCollidingOffset(40 * MS, MESH_INTERVAL - 30 * MS); 
+    transmitClusterNudge(MESH_INTERVAL - 30 * MS - mRand(30 * MS), MESH_CHANNEL);
+  }
+
+
 }
 void ClusterMeshDev::setCluster(MeshCluster* pCluster)
 {
@@ -930,6 +1002,79 @@ void ClusterMeshDev::setCluster(MeshCluster* pCluster)
     _MESHERROR(mName, "Attempting to set cluster illegally");
   }
   mMyCluster = pCluster;
+}
+
+void ClusterMeshDev::nudgeCluster(timestamp_t offset)
+{
+  timer_t timer = 0;
+  if (isCH())
+  {
+    timer = mBeaconTimer;
+    _MESHWARN(mName, "NUDGING CLUSTER BY %llu", offset);
+    mInterval = MESH_INTERVAL;
+    mTimer->changeInterval(mBeaconTimer, mInterval);
+    setupTimeOrientation();
+  }
+  else if (mClusterHead != NULL)
+  {
+    timer = mClusterHead->mRxTimer;
+  }
+  else
+  {
+    _MESHERROR(mName, "Nudging independent node");
+  }
+
+  for (MeshCluster* pCluster : mClusters)
+  {
+    pCluster->mOffsetFromOwnClusterTrain += offset;
+    if (pCluster->mOffsetFromOwnClusterTrain > MESH_INTERVAL)
+      pCluster->mOffsetFromOwnClusterTrain -= MESH_INTERVAL;
+  }
+
+  
+  mTimer->reschedule(timer, mTimer->getExpiration(timer) + offset);
+}
+
+void ClusterMeshDev::setupTimeOrientation(void)
+{
+  mesh_packet_t* pPacket = new mesh_packet_t(mDefaultPacket.top());
+  pPacket->payload.str.payload.default.ch_fields.headCount = 1;
+  pPacket->payload.str.payload.default.ch_fields.rxAtEnd = 1;
+  mPacketQueue.push(pPacket);
+
+  mTimer->orderRelative(MESH_INTERVAL * 1.5, [=](timestamp_t, void*){ adjustPacing(); });
+}
+
+timestamp_t ClusterMeshDev::getNonCollidingOffset(timestamp_t begin, timestamp_t end)
+{
+  timestamp_t bestOffset = begin;
+  timestamp_t bestGap = 0;
+  timestamp_t offset = begin;
+  while (offset < end)
+  {
+    timestamp_t gap = 0;
+    MeshCluster* nextCluster = getNextClusterAfter(offset);
+    if (nextCluster == NULL)
+    {
+      gap = MESH_INTERVAL;
+    }
+    else if (nextCluster->mOffsetFromOwnClusterTrain > offset)
+    {
+      gap = nextCluster->mOffsetFromOwnClusterTrain - offset;
+    }
+    else
+    {
+      gap = 0;
+    }
+
+    if (gap > bestGap)
+    {
+      bestOffset = offset;
+      bestGap = gap;
+    }
+    offset += gap + MESH_CLUSTER_SLOT_US;
+  }
+  return bestOffset + bestGap / 2;
 }
 
 bool ClusterMeshDev::isSubscribedToCluster(MeshCluster* pCluster)
@@ -997,4 +1142,36 @@ void ClusterMeshDev::transmitNearestClusterUpdate(MeshCluster* pNearestCluster)
   pPacket->adv_addr.set(mAdvAddr);
 
   mPacketQueue.push(pPacket);
+}
+
+void ClusterMeshDev::transmitClusterNudge(timestamp_t offset, uint8_t new_channel)
+{
+  mesh_packet_t* pPacket = new mesh_packet_t();
+
+  pPacket->access_addr = MESH_ACCESS_ADDR;
+  pPacket->header.length = MESH_PACKET_OVERHEAD + MESH_PACKET_OVERHEAD_NUDGE_CLUSTER;
+  pPacket->header.type = BLE_PACKET_TYPE_ADV_IND;
+  pPacket->payload.str.adv_len = MESH_PACKET_OVERHEAD_NUDGE_CLUSTER;
+  pPacket->payload.str.adv_type = MESH_ADV_TYPE_NUDGE_CLUSTER;
+  pPacket->payload.str.payload.nudge_cluster.new_channel = new_channel;
+  pPacket->payload.str.payload.nudge_cluster.offset_us = (uint32_t) offset;
+  pPacket->adv_addr.set(mAdvAddr);
+
+  // fast lane the packet
+  if (!mPacketQueue.empty())
+  {
+    auto tempQueue = std::queue<mesh_packet_t*>(mPacketQueue);
+    while (!mPacketQueue.empty())
+      mPacketQueue.pop();
+    mPacketQueue.push(pPacket);
+    while (!tempQueue.empty())
+    {
+      mPacketQueue.push(tempQueue.front());
+      tempQueue.pop();
+    }
+  }
+  else
+  {
+    mPacketQueue.push(pPacket);
+  }
 }

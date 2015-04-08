@@ -128,7 +128,7 @@ struct mesh_packet_t
         {
           ble_adv_addr_t neighbor_ch;
           uint32_t offset_us;
-          uint32_t approach_speed;
+          int32_t approach_speed;
         } closest_neighbor;
         struct
         {
