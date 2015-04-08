@@ -99,6 +99,9 @@ void PowerPlotter::specialKeys(int key, int x, int y)
     }
     else
     {
+      if (glutGetModifiers() & GLUT_ACTIVE_CTRL)
+        delta *= 10;
+      
       tempStartTime += delta;
       tempEndTime += delta;
     }
@@ -111,6 +114,8 @@ void PowerPlotter::specialKeys(int key, int x, int y)
     }
     else
     {
+      if (glutGetModifiers() & GLUT_ACTIVE_CTRL)
+        delta *= 10;
       tempStartTime -= delta;
       tempEndTime -= delta;
     }
