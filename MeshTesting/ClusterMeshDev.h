@@ -8,7 +8,8 @@
 #define MESH_MAX_CLUSTER_SIZE             (32)
 #define MESH_CLUSTER_SLOT_US              (625)
 #define MESH_LEAF_SCAN_WAIT               (MESH_INTERVAL * 10 + MESH_INTERVAL / 2)
-#define MESH_LEAF_SCAN_INTERVAL_MIN       (MESH_INTERVAL * 300)
+#define MESH_LEAF_SCAN_INTERVAL_MIN       (MESH_INTERVAL * 20)
+#define MESH_LEAF_SCAN_INTERVAL_MAX       (MESH_INTERVAL * 2000)
 #define MESH_LEAF_SCAN_SCORE_MULTIPLIER   (10)
 
 typedef enum
@@ -134,10 +135,13 @@ private:
   timer_t mBeaconTimer;
   timer_t mChTimer;
   timer_t mCurrentSubAbortTimer;
-  bool mLeafScanTriggered;
+  timer_t mScanTimer;
+  bool mScanTriggered;
   bool mJustFinishedLeafScan;
+  bool mClusterScanInProgress;
   timestamp_t mInterval;
   timestamp_t mLastStateChange;
+  timestamp_t mScanInterval;
   std::queue<mesh_packet_t*> mPacketQueue;
   std::stack<mesh_packet_t> mDefaultPacket;
   uint8_t mScore;
@@ -164,6 +168,8 @@ private:
   void setCluster(MeshCluster* pCluster);
   void nudgeCluster(timestamp_t offset);
   void setupTimeOrientation(void);
+  void startLeafScanTimer(void);
+  void resetLeafScanInterval(void);
 
   bool isSubscribedToCluster(MeshCluster* pCluster);
 
