@@ -36,7 +36,7 @@ timer_t Timer::orderAt(timestamp_t timestamp, const std::function<void(timestamp
 
 timer_t Timer::orderRelative(timestamp_t deltaTime, const std::function<void(timestamp_t, void*)> callback, void* context)
 {
-  return orderAt(getTimestamp() + deltaTime * mDriftFactor, callback, context);
+  return orderAt((timestamp_t) (getTimestamp() + deltaTime * mDriftFactor), callback, context);
 }
 
 timer_t Timer::orderPeriodic(timestamp_t firstTimeout, timestamp_t interval, const std::function<void(timestamp_t, void*)> callback, void* context)
@@ -134,7 +134,7 @@ void Timer::step(timestamp_t timestamp)
         // reschedule periodic timer:
         if (mCurrentTimeout->mInterval > 0 && !mCurrentTimeout->invalid)
         {
-          mCurrentTimeout->mTimestamp += mCurrentTimeout->mInterval * mDriftFactor;
+          mCurrentTimeout->mTimestamp += (timestamp_t)(mCurrentTimeout->mInterval * mDriftFactor);
           mCurrentTimeout->invalid = false;
 
           getEnvironment()->registerExecution(this, mCurrentTimeout->mTimestamp);
