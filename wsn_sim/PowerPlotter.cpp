@@ -203,25 +203,26 @@ void PowerPlotter::plotDevice(Device* pDev, uint32_t index)
   dvec time;
 
   double currVal = 0.0;
-  auto it = evs.begin() + mStartOffsets[index];
-  while (it->timestamp > mStartTime)
+  auto it = evs->begin() + mStartOffsets[index];
+  while (it->timestamp > mStartTime && mStartOffsets[index] > 0)
   {
-    it = evs.begin() + (--mStartOffsets[index]);
+    it = evs->begin() + (--mStartOffsets[index]);
     currVal = it->power_mA;
   }
 
-  while (it != evs.end() && it->timestamp <= mStartTime) // find last point before start
+  while (it != evs->end() && it->timestamp <= mStartTime) // find last point before start
   {
     currVal = it->power_mA;
     it++;
   }
-
+  mStartOffsets[index] = it - evs->begin();
   power.push_back(currVal);
   time.push_back(mStartTime);
 
 
-  for (Device::powerEvent_t& powEv : evs)
+  for (; it != evs->end(); it++)
   {
+    auto powEv = *it;
     if (powEv.timestamp > mEndTime)
     {
       break;
