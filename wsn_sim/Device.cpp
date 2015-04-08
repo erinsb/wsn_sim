@@ -130,7 +130,7 @@ double Device::getPowerUsageAvg(timestamp_t firstSample, timestamp_t lastSample,
   if (powerUsage.back().timestamp < lastSample)
     lastSample = powerUsage.back().timestamp;
 
-  return (1.0 + mExtraPowerUsagePart) * sum / (double(lastSample - firstSample)) + mBackgroundPowerUsage; // nano-Ampere
+  return (1.0 + mExtraPowerUsagePart) * sum / (double(lastSample - firstSample)) + mBackgroundPowerUsage; 
 }
 
 void Device::plotPower(timestamp_t startTime, timestamp_t endTime)

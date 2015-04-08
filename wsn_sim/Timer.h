@@ -6,6 +6,7 @@
 #define PPM   (1.0 / 1000000.0)
 #define MEMBER_TIMEOUT(func)   std::bind(&func, this, std::placeholders::_1, std::placeholders::_2)
 #define TIMER_DRIFT_MARGIN  (2)
+#define TIMER_INVALID       (0)
 
 typedef uint32_t timer_t; // handle
 
@@ -14,7 +15,15 @@ class Timer;
 class Timeout
 {
 public:
-  Timeout(timestamp_t timestamp, timer_t id, const std::function<void(timestamp_t, void*)> callback, void* context) : mTimestamp(timestamp), mCallback(callback), mContext(context), mInterval(0), mTimerID(id) {}
+  Timeout(timestamp_t timestamp, 
+    timer_t id, 
+    const std::function<void(timestamp_t, void*)> callback, 
+    void* context) 
+    : mTimestamp(timestamp)
+    , mCallback(callback)
+    , mContext(context)
+    , mInterval(0)
+    , mTimerID(id) {}
 
   void fire(Timer* pTimer);
   const std::function<void(timestamp_t, void*)> mCallback;
