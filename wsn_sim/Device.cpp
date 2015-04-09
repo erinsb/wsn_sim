@@ -2,6 +2,8 @@
 #include "Radio.h"
 #include <math.h>
 
+uint32_t Device::smDeviceCount = 0;
+
 Device::Device(double x, double y) : mName("Device"), mExtraPowerUsagePart(0.0), mBackgroundPowerUsage(0.0)
 {
   pos.x = x;
@@ -12,7 +14,7 @@ Device::Device(double x, double y) : mName("Device"), mExtraPowerUsagePart(0.0),
     RADIO_DEFAULT_TIFS, 
     RADIO_DEFAULT_BITRATE);
   mTimer = new Timer(1.0);
-  mRand.Reseed();
+  mRand.Reseed(MESH_DEV_RAND_SEED + smDeviceCount++);
 }
 
 Device::Device() : Device(0.0, 0.0)

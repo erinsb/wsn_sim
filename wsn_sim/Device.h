@@ -5,6 +5,7 @@
 #include "PowerPlotter.h"
 #include "RandomLib\Random.hpp"
 
+#define MESH_DEV_RAND_SEED  (6432)
 
 typedef enum
 {
@@ -66,6 +67,7 @@ protected:
   virtual void radioCallbackTx(RadioPacket* packet){};
   virtual void radioCallbackRx(RadioPacket* packet, uint8_t rx_strength, bool corrupted){};
 private:
+  static uint32_t smDeviceCount;
   std::mutex powerMut;
   std::vector<powerEvent_t> powerUsage;
 };
