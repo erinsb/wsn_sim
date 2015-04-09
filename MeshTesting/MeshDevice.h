@@ -13,7 +13,7 @@
 #define MESH_OPTIMAL_SUBSCRIPTIONS  (4)
 #define MESH_MAX_LOSS_COUNT         (6)
 #define MESH_MAX_CLOCK_DRIFT        (500.0 * PPM)
-#define MESH_MAX_CLOCK_DRIFT_TWO_SIDED  (MESH_MAX_CLOCK_DRIFT * 2.1)
+#define MESH_MAX_CLOCK_DRIFT_TWO_SIDED  (MESH_MAX_CLOCK_DRIFT * 2.2)
 #define MESH_CH_OFFSET_US(offs)     (625 * ((timestamp_t) offs))
 #define MESH_CH_OFFSET_SLOTS(offs)  ((timestamp_t) offs / 625)
 #define MESH_CH_BEACON_MARGIN       (500)
@@ -343,8 +343,8 @@ private:
   timestamp_t mSearchStartTime;
   timestamp_t mFirstBeaconTX;
   uint32_t mBeaconCount;
-  volatile timer_t mBeaconTimerID;
-  volatile timer_t mCurrentRXTimer;
+  timer_t mBeaconTimerID;
+  timer_t mCurrentRXTimer;
   msgIDcache_t mMsgIDcache;
 
   virtual void radioCallbackTx(RadioPacket* packet);
