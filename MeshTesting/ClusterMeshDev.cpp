@@ -120,6 +120,7 @@ void ClusterMeshDev::cleanupPrevState(void)
       break;
     case CM_STATE_CH:
       mTimer->abort(mBeaconTimer);
+      _MESHLOG(mName, "Aborted beacon timer without restarting?");
       break;
     case CM_STATE_LEAF:
       mTimer->abort(mChTimer);
@@ -192,10 +193,11 @@ void ClusterMeshDev::becomeCH(void)
   timestamp_t timeNow = mTimer->getTimestamp();
   mClusterHead = NULL;
   setState(CM_STATE_CH_SCAN);
+  timestamp_t start = timeNow + MESH_CLUSTER_SLOT_US + mRand(MESH_INTERVAL);// getNonCollidingOffset(timeNow + MESH_CLUSTER_SLOT_US, timeNow + MESH_INTERVAL);
 
   mTimer->abort(mBeaconTimer);
-  mBeaconTimer = mTimer->orderPeriodic(timeNow + mRand.Float() * MESH_INTERVAL + MESH_CLUSTER_SLOT_US, MESH_INTERVAL, [=](timestamp_t, void*){ radioBeaconTX(); });
-  mTimer->orderRelative(MESH_INTERVAL * 4, [=](timestamp_t, void*){ cleanupPrevState(); setState(CM_STATE_CH); }); // Stop scanning for participants after a while
+  mBeaconTimer = mTimer->orderPeriodic(start, MESH_INTERVAL, [=](timestamp_t, void*){ radioBeaconTX(); });
+  mTimer->orderRelative(MESH_INTERVAL * 4, [=](timestamp_t, void*){ setState(CM_STATE_CH); }); // Stop scanning for participants after a while
 
   mRadio->shortToRx(); // scan "forever"
   if (mRadio->getState() != Radio::RADIO_STATE_RX)
@@ -413,7 +415,9 @@ MeshCluster* ClusterMeshDev::getLastClusterBefore(void)
   {
     if (pCluster != mMyCluster)
     {
-      if (pNearestCluster == NULL || pCluster->mOffsetFromOwnClusterTrain < pNearestCluster->mOffsetFromOwnClusterTrain)
+      timestamp_t tempOffset = pCluster->getOffset(getClusterTime());
+      timestamp_t bestOffset = pNearestCluster == NULL? 0 : pNearestCluster->getOffset(getClusterTime());
+      if (pNearestCluster == NULL || tempOffset > bestOffset)
       {
         pNearestCluster = pCluster;
       }
@@ -423,13 +427,13 @@ MeshCluster* ClusterMeshDev::getLastClusterBefore(void)
 }
 
 
-MeshCluster* ClusterMeshDev::getNearestCluster(void)
+MeshCluster* ClusterMeshDev::getNearestCluster(timestamp_t time)
 {
   MeshCluster* pNearestCluster = NULL;
   for (MeshCluster* pCluster : mClusters)
   {
     if (pCluster != mMyCluster &&
-      (pNearestCluster == NULL || pCluster->absoluteOffset() < pNearestCluster->absoluteOffset()))
+      (pNearestCluster == NULL || pCluster->absoluteOffset(time) < pNearestCluster->absoluteOffset(time)))
     {
       pNearestCluster = pCluster;
     }
@@ -443,7 +447,7 @@ MeshCluster* ClusterMeshDev::getNextClusterAfter(timestamp_t startTime)
   MeshCluster* pBestCluster = NULL;
   for (MeshCluster* pCluster : mClusters)
   {
-    if (pBestCluster == NULL || (pCluster->mOffsetFromOwnClusterTrain > startTime && pCluster->mOffsetFromOwnClusterTrain < pBestCluster->mOffsetFromOwnClusterTrain))
+    if (pBestCluster == NULL || pCluster->getOffset(startTime) < pBestCluster->getOffset(startTime))
     {
       pBestCluster = pCluster;
     }
@@ -571,21 +575,27 @@ void ClusterMeshDev::radioCallbackRx(RadioPacket* pPacket, uint8_t rx_strength, 
     if (mMyCluster != NULL && pCluster != mMyCluster)
     {
       // store cluster train offset from our own
-      timestamp_t ownClusterTrainAnchor = getClusterTime();
-      timestamp_t otherClusterTrainAnchor = rxTime - MESH_CLUSTER_SLOT_US * pSender->mBeaconOffset;
+      timestamp_t clusterTrainAnchor = rxTime - MESH_CLUSTER_SLOT_US * pSender->mBeaconOffset;
 
-      if (otherClusterTrainAnchor > ownClusterTrainAnchor)
-        ownClusterTrainAnchor += MESH_INTERVAL;
+      timestamp_t oldOffset = pCluster->mLastCHBeacon;
+      pCluster->mLastCHBeacon = clusterTrainAnchor;
+      
+      if (clusterTrainAnchor > oldOffset + MESH_INTERVAL / 2)
+      {
+        if (clusterIsNew)
+        {
+          pCluster->mInitialOffset = pCluster->getOffset(getClusterTime());
+          pCluster->mApproachSpeed = 0.0;
+        }
+        else
+          pCluster->mApproachSpeed = pCluster->getOffset(oldOffset);
 
-      timestamp_t oldOffset = pCluster->mOffsetFromOwnClusterTrain;
-      pCluster->mLastCHBeacon = ownClusterTrainAnchor - otherClusterTrainAnchor;
+        if (pCluster->mApproachSpeed > MESH_INTERVAL / 2)
+          pCluster->mApproachSpeed = pCluster->mApproachSpeed - MESH_INTERVAL;
 
-      if (clusterIsNew)
-        pCluster->mApproachSpeed = 0.0;
-      else if (abs((int32_t)oldOffset - (int32_t)pCluster->mOffsetFromOwnClusterTrain) < MESH_INTERVAL * MESH_MAX_CLOCK_DRIFT_TWO_SIDED)
-        pCluster->mApproachSpeed = ((int32_t)oldOffset - (int32_t)pCluster->mOffsetFromOwnClusterTrain);
-      else 
-        pCluster->mApproachSpeed = 0.0;
+        // want approach speed, rather than offset speed:
+        pCluster->mApproachSpeed *= -1;
+      }
     }
     // setup any chained events
     if (pCluster->getFirstDeviceIndex() >= pSender->mBeaconOffset &&
@@ -640,6 +650,7 @@ void ClusterMeshDev::radioCallbackRx(RadioPacket* pPacket, uint8_t rx_strength, 
             
             pCluster->mDevices[0] = pSender;
             mTimer->abort(mBeaconTimer); // beacon will now rely on cluster head
+            _MESHLOG(mName, "Stopped requesting /beaconing");
             cleanupPrevState();
             setState(CM_STATE_LEAF);
             mWSN->addConnection(this, pSender->mDev, true);
@@ -682,6 +693,10 @@ void ClusterMeshDev::radioCallbackRx(RadioPacket* pPacket, uint8_t rx_strength, 
                 rxTime + MESH_INTERVAL * pMeshPacket->payload.str.payload.default.ch_fields.clusterMax - MESH_RX_RU_TIME, 
                 [=](timestamp_t, void*){ radioBeaconTX(); }
               );
+            }
+            else
+            {
+              _MESHLOG(mName, "Stopped beacon timer without restarting it!");
             }
           }
         }
@@ -737,7 +752,7 @@ void ClusterMeshDev::radioCallbackRx(RadioPacket* pPacket, uint8_t rx_strength, 
                mClusters.push_back(pNbCluster);
              }
              pNbCluster->mApproachSpeed = pMeshPacket->payload.str.payload.closest_neighbor.approach_speed;
-             pNbCluster->mOffsetFromOwnClusterTrain = pMeshPacket->payload.str.payload.closest_neighbor.offset_us;
+             pNbCluster->mLastCHBeacon = getClusterTime() + pMeshPacket->payload.str.payload.closest_neighbor.offset_us;
           }
           break;
         case MESH_ADV_TYPE_NUDGE_CLUSTER:
@@ -752,7 +767,7 @@ void ClusterMeshDev::radioCallbackRx(RadioPacket* pPacket, uint8_t rx_strength, 
             }
             else
             {
-              _MESHERROR(mName, "Attempt to nudge external cluster failed");
+              _MESHWARN(mName, "Attempt to nudge external cluster failed");
             }
           }
         }
@@ -1031,27 +1046,54 @@ void ClusterMeshDev::adjustPacing(void)
 
   if (pNearestCluster == NULL)
     return;
+#if 1
+  timestamp_t nearestOffset = MESH_INTERVAL - pNearestCluster->getOffset(getClusterTime());
 
-  if (pNearestCluster->mOffsetFromOwnClusterTrain < 40 * MS)
+  if (nearestOffset < 30 * MS)
   {
-    int64_t movespeed = pNearestCluster->mApproachSpeed * 1.8 * (1.0 - pNearestCluster->mOffsetFromOwnClusterTrain / (40.0 * MS));
-    if (pNearestCluster->mApproachSpeed < 0 && pNearestCluster->mOffsetFromOwnClusterTrain < 20 * MS)
-      movespeed = 3 * (1.0 - double(pNearestCluster->mOffsetFromOwnClusterTrain) / (20.0 * MS));
-
+    bool preadjust = false;
     // DANGER ZONE
-    if (abs(pNearestCluster->mApproachSpeed) < (timestamp_t)(MESH_INTERVAL * MESH_MAX_CLOCK_DRIFT_TWO_SIDED) &&
-      abs((int64_t)mInterval + movespeed - (int64_t)MESH_INTERVAL) < MESH_INTERVAL * MESH_MAX_CLOCK_DRIFT_TWO_SIDED &&
-      movespeed != 0)
+    int64_t movespeed = pNearestCluster->mApproachSpeed;// +(20 * MS - (int64_t)nearestOffset) / (5);
+    if (nearestOffset < 20 * MS)
+    {
+      movespeed = int64_t(20 * MS - nearestOffset) / (50);
+    }
+    else
+    {
+      movespeed = -int64_t(nearestOffset - 20 * MS) / (50);
+    }
+
+    if (int64_t(mInterval) + movespeed > MESH_INTERVAL * (1.0 + MESH_MAX_CLOCK_DRIFT_TWO_SIDED) ||
+      int64_t(mInterval) + movespeed < MESH_INTERVAL * (1.0 - MESH_MAX_CLOCK_DRIFT))
+    {
+      if (movespeed > 0)
+        mInterval = MESH_INTERVAL * (1.0 + MESH_MAX_CLOCK_DRIFT_TWO_SIDED);
+      else if (movespeed < 0)
+        mInterval = MESH_INTERVAL * (1.0 - MESH_MAX_CLOCK_DRIFT);
+      movespeed = 0;
+      preadjust = true;
+    }
+
+    if (movespeed != 0 || preadjust)
     {
       // impact of adjustment depends on distance to next 
       mInterval += (movespeed);
-      mTimer->changeInterval(mBeaconTimer, mInterval);
-      pNearestCluster->mApproachSpeed = 0;
+      if (mTimer->isValidTimer(mBeaconTimer))
+        mTimer->changeInterval(mBeaconTimer, mInterval);
+      else
+        _MESHWARN(mName, "Adjusting non-valid beacon timer");
+      pNearestCluster->mApproachSpeed -= movespeed;
     }
-    else if (pNearestCluster->mOffsetFromOwnClusterTrain < 10*MS)
+    else if (pNearestCluster->mApproachSpeed > 0 && nearestOffset < 10*MS)
     {
       // dodge the approaching train
       doNudge = true;
+      _MESHLOG(mName, "Dodging distance: %llu", nearestOffset);
+    }
+    else if (false && mInterval != MESH_INTERVAL)
+    {
+      //mInterval += (mInterval > MESH_INTERVAL) ? -1 : 1;
+      mTimer->changeInterval(mBeaconTimer, mInterval);
     }
   }
   else
@@ -1059,15 +1101,36 @@ void ClusterMeshDev::adjustPacing(void)
     // slowly recover from previous adjustments. Will cause "bouncing" effect in trains.
     if (false && mInterval != MESH_INTERVAL)
     {
-      mInterval += (mInterval > MESH_INTERVAL)? -1 : 1;
+      mInterval += (mInterval > MESH_INTERVAL)? -2 : 2;
       mTimer->changeInterval(mBeaconTimer, mInterval);
     }
-    // nudge for colliding cluster
-    if (pNearestCluster->mOffsetFromOwnClusterTrain < 2 * MS + pNearestCluster->mClusterMax * MESH_CLUSTER_SLOT_US)
-    {
-      doNudge = true;
-    }
   }
+#else
+  int64_t offset = pNearestCluster->getOffset(getClusterTime() + pNearestCluster->mInitialOffset);
+  if (offset > MESH_INTERVAL / 2)
+    offset -= (int64_t)MESH_INTERVAL;
+  int64_t movespeed = offset / 5;
+  if (pNearestCluster->getOffset(getClusterTime()) > MESH_INTERVAL - 40 *MS && movespeed != 0)
+  {
+    if (abs((int64_t)mInterval + movespeed - (int64_t)MESH_INTERVAL) > MESH_INTERVAL * MESH_MAX_CLOCK_DRIFT)
+    {
+      if (movespeed > 0)
+      {
+        mInterval = MESH_INTERVAL * (1.0 + MESH_MAX_CLOCK_DRIFT);
+        movespeed = 0;
+      }
+      else if (movespeed < 0)
+      {
+        mInterval = MESH_INTERVAL * (1.0 - MESH_MAX_CLOCK_DRIFT);
+        movespeed = 0;
+      }
+    }
+
+    mInterval += movespeed;
+    mTimer->changeInterval(mBeaconTimer, mInterval);
+  }
+
+#endif
 
   if (doNudge)
   {
@@ -1109,9 +1172,6 @@ void ClusterMeshDev::nudgeCluster(timestamp_t offset)
 
   for (MeshCluster* pCluster : mClusters)
   {
-    pCluster->mOffsetFromOwnClusterTrain += offset;
-    if (pCluster->mOffsetFromOwnClusterTrain > MESH_INTERVAL)
-      pCluster->mOffsetFromOwnClusterTrain -= MESH_INTERVAL;
     pCluster->mApproachSpeed = 0;
   }
 
@@ -1173,9 +1233,9 @@ timestamp_t ClusterMeshDev::getNonCollidingOffset(timestamp_t begin, timestamp_t
     {
       gap = MESH_INTERVAL;
     }
-    else if (nextCluster->mOffsetFromOwnClusterTrain > offset)
+    else if (nextCluster->getOffset(getClusterTime()) > offset)
     {
-      gap = nextCluster->mOffsetFromOwnClusterTrain - offset;
+      gap = nextCluster->getOffset(getClusterTime()) - offset;
     }
     else
     {
@@ -1255,7 +1315,7 @@ void ClusterMeshDev::transmitNearestClusterUpdate(MeshCluster* pNearestCluster)
   pPacket->payload.str.adv_type = MESH_ADV_TYPE_CLOSEST_NEIGHBOR;
   pPacket->payload.str.payload.closest_neighbor.neighbor_ch.set(pNearestCluster->mCHaddr);
   pPacket->payload.str.payload.closest_neighbor.approach_speed = pNearestCluster->mApproachSpeed;
-  pPacket->payload.str.payload.closest_neighbor.offset_us = pNearestCluster->mOffsetFromOwnClusterTrain;
+  pPacket->payload.str.payload.closest_neighbor.offset_us = pNearestCluster->getOffset(getClusterTime());
   pPacket->adv_addr.set(mAdvAddr);
 
   mPacketQueue.push(pPacket);

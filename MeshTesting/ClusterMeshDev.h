@@ -3,6 +3,7 @@
 #include "MeshWSN.h"
 #include "Device.h"
 #include "Radio.h"
+#include "Logger.h"
 #include <stack>
 
 #define MESH_MAX_CLUSTER_SIZE             (32)
@@ -42,6 +43,7 @@ public:
   timestamp_t mLastCHBeacon;
   int32_t mApproachSpeed;
   uint8_t mClusterMax;
+  timestamp_t mInitialOffset;
 
   bool contains(MeshNeighbor* pNb)
   {
@@ -85,19 +87,15 @@ public:
   // Get distance to next beacon after reference
   timestamp_t getOffset(timestamp_t reference)
   {
-    return mLastCHBeacon + MESH_INTERVAL * (int64_t(reference - mLastCHBeacon) / MESH_INTERVAL + 1 * (reference > mLastCHBeacon)) - reference;
+    return mLastCHBeacon + MESH_INTERVAL * (int64_t(reference - mLastCHBeacon) / int64_t(MESH_INTERVAL) + 1 * (reference > mLastCHBeacon)) - reference;
   }
 
-  int64_t absoluteOffset(void)
+  uint64_t absoluteOffset(timestamp_t reference)
   {
-    if (mOffsetFromOwnClusterTrain > MESH_INTERVAL / 2)
-    {
-      return mOffsetFromOwnClusterTrain - MESH_INTERVAL;
-    }
-    else
-    {
-      return mOffsetFromOwnClusterTrain;
-    }
+    uint64_t offset = getOffset(reference);
+    if (offset > MESH_INTERVAL / 2)
+      offset = MESH_INTERVAL - offset;
+    return offset;
   }
 
   
@@ -123,7 +121,7 @@ public:
 
   bool isInCluster(void) { return (mState == CM_STATE_LEAF || CM_STATE_CH); }
   bool isSubscribedTo(MeshNeighbor* pNb);
-  bool isCH(void) { return mState == CM_STATE_CH || mState == CM_STATE_CH_SCAN; }
+  bool isCH(void) { return ((mState == CM_STATE_CH) || (mState == CM_STATE_CH_SCAN)); }
 
   MeshCluster* getCluster(ble_adv_addr_t* pCHaddr);
   timestamp_t getClusterTime(void);
@@ -157,7 +155,7 @@ private:
   MeshNeighbor* getBestNb(std::function<bool(MeshNeighbor*)> filterFunc = NULL);
   MeshNeighbor* getNb(ble_adv_addr_t* pAdvAddr);
   MeshCluster* getLastClusterBefore(void);
-  MeshCluster* getNearestCluster(void);
+  MeshCluster* getNearestCluster(timestamp_t time);
   MeshCluster* getNextClusterAfter(timestamp_t startTime);
   timestamp_t getNonCollidingOffset(timestamp_t begin, timestamp_t end);
 
