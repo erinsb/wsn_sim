@@ -49,7 +49,7 @@ public:
   timer_t orderPeriodic(timestamp_t firstTimeout, timestamp_t interval, const std::function<void(timestamp_t, void*)> callback, void* context = NULL);
   void reschedule(timer_t timer, timestamp_t timestamp);
   void changeInterval(timer_t timer, timestamp_t interval);
-  void abort(timer_t timer);
+  void abort(timer_t& timer);
   timestamp_t getExpiration(timer_t timer);
   void setContext(timer_t timer, void* context);
 

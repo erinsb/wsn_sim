@@ -68,14 +68,12 @@ void Timer::changeInterval(timer_t timer, timestamp_t interval)
   pTo->mInterval = interval;
 }
 
-void Timer::abort(timer_t timer)
+void Timer::abort(timer_t& timer)
 {
-  bool didAbort = false;
   for (auto it = mTimeouts.begin(); it != mTimeouts.end();)
   {
     if ((*it)->mTimerID == timer)
     {
-      didAbort = true;
       if (*it == mCurrentTimeout)
       {
         (*it)->invalid = true;
@@ -93,6 +91,7 @@ void Timer::abort(timer_t timer)
       it++;
     }
   }
+  timer = TIMER_INVALID;
 }
 
 timestamp_t Timer::getExpiration(timer_t timer)
