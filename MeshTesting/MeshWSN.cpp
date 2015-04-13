@@ -124,7 +124,7 @@ void MeshWSN::print(void)
   double totPowerUsage = 0.0;
   double maxPowerUsage = 0.0;
   double minPowerUsage = 100000000.0;
-  double peukert = 1.05;
+  double peukert = 1.15;
 
   for (auto it = mDevices.begin(); it != mDevices.end(); it++)
   {
