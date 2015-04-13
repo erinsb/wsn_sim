@@ -168,8 +168,12 @@ void ClusterMeshDev::doMakeCluster(void)
 void ClusterMeshDev::setCH(MeshNeighbor* pCH)
 {
   setState(CM_STATE_REQ_CLUSTER);
+  mRadio->shortDisable();
+  mRadio->disable();
   mClusterHead = pCH;
   MeshCluster* pCluster = getCluster(&pCH->mAdvAddr);
+  mTimer->abort(mBeaconTimer);
+
   if (pCluster == NULL)
   {
     pCluster = new MeshCluster(&pCH->mAdvAddr);
@@ -181,7 +185,7 @@ void ClusterMeshDev::setCH(MeshNeighbor* pCH)
 
   if (!isSubscribedTo(pCH))
   {
-    pCH->mLastBeaconTime = mTimer->getTimestamp();
+    //pCH->mLastBeaconTime = mTimer->getTimestamp();
     subscribe(pCH);
   }
 
@@ -340,13 +344,11 @@ void ClusterMeshDev::makeClusterCheck(void)
     else
       _MESHLOG(mName, "Best NB: %d, me: %d", pBestNb->mNodeWeight, mScore);
     becomeCH();
-    return;
   }
-  if (mTimer->getTimestamp() - mLastStateChange > MESH_INTERVAL * 10)
+  else if (mTimer->getTimestamp() - mLastStateChange > MESH_INTERVAL * 10)
     becomeCH();
-  else
-    _MESHLOG(mName, "No nearby CH's, and I suck");
-  //keep waiting
+
+  //else keep waiting
 }
 
 bool ClusterMeshDev::isSubscribedTo(MeshNeighbor* pNb)
@@ -930,6 +932,7 @@ void ClusterMeshDev::radioBeaconTX(void)
     case CM_STATE_RECON:
     case CM_STATE_MAKE_CLUSTER:
     case CM_STATE_REQ_CLUSTER:
+      if (!mTimer->isValidTimer(mBeaconTimer))
       mBeaconTimer = mTimer->orderRelative((MESH_INTERVAL - mLastStateChange % MESH_INTERVAL) + mRand.Float() * (MESH_INTERVAL - 1 * MS) + 1 * MS, [this](timestamp_t, void*) { radioBeaconTX(); });
       //deliberate fallthrough
     case CM_STATE_CH_SCAN:
