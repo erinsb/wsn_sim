@@ -205,6 +205,8 @@ void ClusterMeshDev::becomeCH(void)
     mRadio->disable();
   }
 
+  startLeafScanTimer();
+
   mMyCluster = new MeshCluster(&mAdvAddr);
   mClusters.push_back(mMyCluster);
   mMyClusterOffset = 0;
@@ -471,31 +473,38 @@ void ClusterMeshDev::radioCallbackTx(RadioPacket* pPacket)
       orderRestOfCluster(mMyCluster, mMyClusterOffset, txTime);
     }
     // do as promised in packet
-    if (pMeshPacket->payload.str.adv_type == MESH_ADV_TYPE_DEFAULT &&
-      pMeshPacket->payload.str.payload.default.ch_fields.rxAtEnd)
+    if (pMeshPacket->payload.str.adv_type == MESH_ADV_TYPE_DEFAULT)
     {
-      mTimer->orderAt(txTime + (pMeshPacket->payload.str.payload.default.ch_fields.clusterMax) * MESH_CLUSTER_SLOT_US - MESH_RX_RU_TIME, 
-        [this](timestamp_t, void*)
+      if (pMeshPacket->payload.str.payload.default.ch_fields.rxAtEnd)
       {
-        mRadio->disable();
-        mRadio->shortDisable();
-        mRadio->receive();
-        mCurrentSubAbortTimer = mTimer->orderRelative(MESH_RX_RU_TIME + MESH_ADDRESS_OFFSET_US, 
-          [=](timestamp_t, void*)
+        mTimer->orderAt(txTime + (pMeshPacket->payload.str.payload.default.ch_fields.clusterMax) * MESH_CLUSTER_SLOT_US - MESH_RX_RU_TIME,
+          [this](timestamp_t, void*)
         {
-          if (!mRadio->rxInProgress())
+          mRadio->disable();
+          //mRadio->shortDisable();
+          mRadio->receive();
+          mCurrentSubAbortTimer = mTimer->orderRelative(MESH_RX_RU_TIME + MESH_ADDRESS_OFFSET_US,
+            [=](timestamp_t, void*)
           {
-            mRadio->disable();
+            if (!mRadio->rxInProgress())
+            {
+              mRadio->disable();
+            }
           }
+          );
         }
         );
       }
-      );
+      if (pMeshPacket->payload.str.payload.default.ch_fields.isScanning)
+      {
+        mRadio->shortToRx();
+      }
     }
     else if (pMeshPacket->payload.str.adv_type == MESH_ADV_TYPE_NUDGE_CLUSTER)
     {
       nudgeCluster(pMeshPacket->payload.str.payload.nudge_cluster.offset_us);
     }
+
   }
 }
 
@@ -694,10 +703,11 @@ void ClusterMeshDev::radioCallbackRx(RadioPacket* pPacket, uint8_t rx_strength, 
                 [=](timestamp_t, void*){ radioBeaconTX(); }
               );
             }
-            else
-            {
-              _MESHLOG(mName, "Stopped beacon timer without restarting it!");
-            }
+          }
+          else
+          {
+            if (!mTimer->isValidTimer(mBeaconTimer))
+              mBeaconTimer = mTimer->orderRelative(mRand.Float() * (MESH_INTERVAL - 1 * MS) + 1 * MS, [this](timestamp_t, void*) { radioBeaconTX(); });
           }
         }
       }
@@ -867,24 +877,6 @@ void ClusterMeshDev::radioBeaconTX(void)
     mRadio->setPacket((uint8_t*)pPacket, MESH_PACKET_OVERHEAD + pPacket->header.length);
     delete pPacket; // radio takes a copy
   }
-  if (transmitBeacon)
-  {
-    if (isCH())
-      mDefaultPacket.top().payload.str.payload.default.clusterAddr.set(mAdvAddr);
-    else if (mClusterHead != NULL)
-      mDefaultPacket.top().payload.str.payload.default.clusterAddr.set(mClusterHead->mAdvAddr);
-    else
-      mDefaultPacket.top().payload.str.payload.default.clusterAddr.clear();
-
-    mDefaultPacket.top().adv_addr.set(mAdvAddr);
-    mDefaultPacket.top().payload.str.payload.default.ch_fields = { 0 };
-    mDefaultPacket.top().payload.str.payload.default.ch_fields.isScanning = isScanningState(mState);
-    mDefaultPacket.top().payload.str.payload.default.ch_fields.clusterMax = ((mMyCluster != NULL)? mMyCluster->getLastDeviceIndex() : 0);
-    mDefaultPacket.top().payload.str.payload.default.nodeWeight = mScore;
-    mDefaultPacket.top().payload.str.payload.default.offsetFromCH = mMyClusterOffset;
-    mDefaultPacket.top().header.length = MESH_PACKET_OVERHEAD_DEFAULT;
-    mRadio->setPacket((uint8_t*)&mDefaultPacket.top(), MESH_PACKET_OVERHEAD + mDefaultPacket.top().header.length);
-  }
 
   if (mScanTriggered)
   {
@@ -908,6 +900,25 @@ void ClusterMeshDev::radioBeaconTX(void)
         mScanTriggered = false;
       }
     }
+  }
+
+  if (transmitBeacon)
+  {
+    if (isCH())
+      mDefaultPacket.top().payload.str.payload.default.clusterAddr.set(mAdvAddr);
+    else if (mClusterHead != NULL)
+      mDefaultPacket.top().payload.str.payload.default.clusterAddr.set(mClusterHead->mAdvAddr);
+    else
+      mDefaultPacket.top().payload.str.payload.default.clusterAddr.clear();
+
+    mDefaultPacket.top().adv_addr.set(mAdvAddr);
+    mDefaultPacket.top().payload.str.payload.default.ch_fields = { 0 };
+    mDefaultPacket.top().payload.str.payload.default.ch_fields.isScanning = isScanningState(mState);
+    mDefaultPacket.top().payload.str.payload.default.ch_fields.clusterMax = ((mMyCluster != NULL)? mMyCluster->getLastDeviceIndex() : 0);
+    mDefaultPacket.top().payload.str.payload.default.nodeWeight = mScore;
+    mDefaultPacket.top().payload.str.payload.default.offsetFromCH = mMyClusterOffset;
+    mDefaultPacket.top().header.length = MESH_PACKET_OVERHEAD_DEFAULT;
+    mRadio->setPacket((uint8_t*)&mDefaultPacket.top(), MESH_PACKET_OVERHEAD + mDefaultPacket.top().header.length);
   }
 
   mRadio->shortDisable();
@@ -1191,6 +1202,7 @@ void ClusterMeshDev::setupTimeOrientation(void)
 
 void ClusterMeshDev::startLeafScanTimer(void)
 {
+  mScanInterval = MESH_LEAF_SCAN_INTERVAL_MIN;
   mScanTimer = mTimer->orderPeriodic(MESH_LEAF_SCAN_WAIT, mScanInterval,
     [this](timestamp_t, void*)
   {
@@ -1208,6 +1220,7 @@ void ClusterMeshDev::startLeafScanTimer(void)
     {
       startLeafScanTimer();
     }
+
   }
   );
 }
