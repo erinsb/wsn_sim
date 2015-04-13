@@ -27,6 +27,9 @@
     <ClCompile Include="ClusterMeshDev.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="LLevent.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MeshDevice.h">
@@ -36,6 +39,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ClusterMeshDev.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LLevent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

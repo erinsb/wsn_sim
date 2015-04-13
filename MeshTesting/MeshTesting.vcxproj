@@ -130,6 +130,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ClusterMeshDev.cpp" />
+    <ClCompile Include="LLevent.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MeshDevice.cpp" />
     <ClCompile Include="MeshWSN.cpp" />
@@ -141,6 +142,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ClusterMeshDev.h" />
+    <ClInclude Include="LLevent.h" />
     <ClInclude Include="MeshDevice.h" />
     <ClInclude Include="MeshWSN.h" />
   </ItemGroup>
