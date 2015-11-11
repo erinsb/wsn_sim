@@ -13,6 +13,7 @@ AdvDevice::AdvDevice(ble_adv_packet_t* advPacket, ble_adv_packet_t* scanPacket, 
   mScanPacket(scanPacket),
   mAdvInt(advInt)
 {
+  this->mName = "Advertiser";
 }
 
 

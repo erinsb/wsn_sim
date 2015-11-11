@@ -5,7 +5,8 @@
 
 ScanDevice::ScanDevice() 
 {
-  mScanRsp = new uint8_t[]{ 1, 2, 3, 4, 5 };
+  mScanRsp = new uint8_t[5]{ 1, 2, 3, 4, 5 };
+  this->mName = "Scanner";
 }
 
 
