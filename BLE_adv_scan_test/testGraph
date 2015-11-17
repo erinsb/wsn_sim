@@ -1,0 +1,30 @@
+strict digraph {
+	node [width = "0.189737" height ="0.189737" label="", fixedsize=false,fontsize = 9.28318, fontname = "Consolas"]
+	graph [dpi=316]
+
+	0 [pos="0,0", xlabel="Scanner" ]
+	1 [pos="70,140", xlabel="Advertiser" ]
+	2 [pos="90,40", xlabel="Advertiser" ]
+	3 [pos="180,20", xlabel="Advertiser" ]
+	4 [pos="50,50", xlabel="Advertiser" ]
+	5 [pos="70,10", xlabel="Advertiser" ]
+	6 [pos="150,20", xlabel="Advertiser" ]
+	7 [pos="160,110", xlabel="Advertiser" ]
+	8 [pos="20,130", xlabel="Advertiser" ]
+	9 [pos="20,10", xlabel="Advertiser" ]
+	10 [pos="180,150", xlabel="Advertiser" ]
+
+	subgraph asym {
+		edge [style=dotted, arrowtype="open", arrowsize = 0.379473]
+		1 -> 0
+		7 -> 0
+		3 -> 0
+		8 -> 0
+		10 -> 0
+		5 -> 0
+		4 -> 0
+		2 -> 0
+		6 -> 0
+		9 -> 0
+	}
+}
