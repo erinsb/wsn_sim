@@ -1,4 +1,6 @@
 # wsn_sim
+## Senior Design 2015
+Based on work by Trond Einar Snekvik
 Discrete simulator for Wireless Sensor Network applications.
 
 Based on the Nordic Semiconductor nRF51 radio, this framework simulates real conditions in wireless sensor networks, and features packet collisions, accurate transmit times, random packet drops, realistic power consumption models and graphical representation of power consumption in devices, clock drift, real BLE packets.
