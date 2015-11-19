@@ -136,9 +136,9 @@ void MeshWSN::print(void)
       minPowerUsage = usage;
   }
   
-  totPowerUsage *= (getEnvironment()->getTimestamp() - MESH_STABILIZATION_TIME) / HOURS; // mA -> mAh
-  maxPowerUsage *= (getEnvironment()->getTimestamp() - MESH_STABILIZATION_TIME) / HOURS; // mA -> mAh
-  minPowerUsage *= (getEnvironment()->getTimestamp() - MESH_STABILIZATION_TIME) / HOURS; // mA -> mAh
+  totPowerUsage *= (getEnvironment()->getTimestamp() - MESH_STABILIZATION_TIME) / float(HOURS); // mA -> mAh
+  maxPowerUsage *= (getEnvironment()->getTimestamp() - MESH_STABILIZATION_TIME) / float(HOURS); // mA -> mAh
+  minPowerUsage *= (getEnvironment()->getTimestamp() - MESH_STABILIZATION_TIME) / float(HOURS); // mA -> mAh
 
   printf("Avg power usage: %.5fmAh\n", totPowerUsage / mDevices.size());
   printf("Max power usage: %.5fmAh\n", maxPowerUsage);
