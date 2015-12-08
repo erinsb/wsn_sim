@@ -9,6 +9,8 @@
 
 #define DEVICE_COUNT  (15)
 #define AREA_SIZE     (50.0)
+//#define DEVICE_COUNT  (80)
+//#define AREA_SIZE     (100.0)
 #define SIM_TIME      (1ULL * HOURS)
 
 BOOL CtrlHandler(DWORD fdwCtrlType)
@@ -33,7 +35,8 @@ int main(void)
   RandomLib::Random randTime;
 
   //lock seeds
-  randPlacer.Reseed(765434);
+  //randPlacer.Reseed(765434);
+  randPlacer.Reseed(565656);
   randTime.Reseed(7324);
 
   pLoggerSimEnv = &env;
@@ -42,6 +45,7 @@ int main(void)
   //wsn.setDropRate(0.1);
 
 
+  // creates new nodes for the network
   for (uint32_t i = 0; i < DEVICE_COUNT; ++i)
   {
     ClusterMeshDev* pDev = new ClusterMeshDev("MESH_" + std::to_string(i), randPlacer.Float() * AREA_SIZE, randPlacer.Float() * AREA_SIZE);
@@ -50,8 +54,10 @@ int main(void)
     wsn.addDevice(pDev);
     //delayed start
     pDev->getTimer()->orderAt(50 * MS + randTime(2 * MESH_INTERVAL), [=](timestamp_t, void*){ pDev->start(); });
+
     //pDev->start();
   }
+
   
 #if 0
   //env.run(25*SECONDS);

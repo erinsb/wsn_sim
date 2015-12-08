@@ -133,7 +133,7 @@ void ClusterMeshDev::doRecon(void)
   if (mRadio->getState() != Radio::RADIO_STATE_IDLE)
   {
     mRadio->shortDisable();
-    mRadio->disable();
+	mRadio->disable();
   }
   
   mDefaultPacket.top().payload.str.payload.default.clusterAddr.clear();
@@ -371,6 +371,7 @@ MeshCluster* ClusterMeshDev::getCluster(ble_adv_addr_t* pCHaddr)
   return NULL;
 }
 
+// Time synchronization
 timestamp_t ClusterMeshDev::getClusterTime(void)
 {
   if (isCH() && mTimer->isValidTimer(mBeaconTimer))
@@ -530,8 +531,9 @@ void ClusterMeshDev::radioCallbackRx(RadioPacket* pPacket, uint8_t rx_strength, 
   // register newfound neighbor
   if (pSender == NULL)
   {
-    pSender = new MeshNeighbor(&pMeshPacket->adv_addr);
+	pSender = new MeshNeighbor(&pMeshPacket->adv_addr);
     pSender->mDev = pPacket->getSender()->getDevice();
+	// add pSender to mNeighbors
     mNeighbors.push_back(pSender);
   }
 
@@ -546,6 +548,7 @@ void ClusterMeshDev::radioCallbackRx(RadioPacket* pPacket, uint8_t rx_strength, 
     }
   }
   
+  // Get cluster of pSender
   MeshCluster* pCluster = NULL;
   // sender is part of a cluster
   if (!pSender->mClusterHead.isNull() || pSender == mClusterHead)
@@ -624,6 +627,7 @@ void ClusterMeshDev::radioCallbackRx(RadioPacket* pPacket, uint8_t rx_strength, 
   }
 
   // special behavior
+  // accounts for problems built into simulator
   switch (mState)
   {
     case CM_STATE_MAKE_CLUSTER:
