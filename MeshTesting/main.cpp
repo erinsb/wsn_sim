@@ -35,8 +35,8 @@ int main(void)
   RandomLib::Random randTime;
 
   //lock seeds
-  //randPlacer.Reseed(765434);
-  randPlacer.Reseed(565656);
+  randPlacer.Reseed(765434);
+  //randPlacer.Reseed(565656);
   randTime.Reseed(7324);
 
   pLoggerSimEnv = &env;

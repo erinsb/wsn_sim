@@ -537,8 +537,9 @@ void ClusterMeshDev::radioCallbackRx(RadioPacket* pPacket, uint8_t rx_strength, 
     mNeighbors.push_back(pSender);
   }
 
-  // update neighbor structure
+  // update neighbor structure & score
   pSender->receivedBeacon(rxTime, pMeshPacket, pPacket->mChannel, rx_strength);
+  mScore = mNeighbors.size();
 
   if (isSubscribedTo(pSender))
   {
