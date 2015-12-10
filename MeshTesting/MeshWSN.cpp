@@ -125,7 +125,7 @@ void MeshWSN::print(void)
   double maxPowerUsage = 0.0;
   double minPowerUsage = 100000000.0;
   double peukert = 1.15;
-  string minDev, maxDev;
+  std::string minDev, maxDev;
 
   for (auto it = mDevices.begin(); it != mDevices.end(); it++)
   {
@@ -152,6 +152,6 @@ void MeshWSN::print(void)
   timestamp_t firstDeath = BATTERY_DRAINAGE_TIME_h * (pow(BATTERY_CAPACITY_mAh, peukert) / pow(maxPowerUsage * BATTERY_DRAINAGE_TIME_h, peukert)); // in hours
   timestamp_t lastDeath  = BATTERY_DRAINAGE_TIME_h * (pow(BATTERY_CAPACITY_mAh, peukert) / pow(minPowerUsage * BATTERY_DRAINAGE_TIME_h, peukert)); // in hours
 
-  printf("First dead node (%s): %d years, %d days and %d hours\n", maxDev, uint32_t(firstDeath / (24ULL * 365ULL)), uint32_t((firstDeath / 24ULL) % 365ULL), uint32_t(firstDeath % 24ULL));
-  printf("Last dead node (%s): %d years, %d days and %d hours\n", minDev, uint32_t(lastDeath / (24ULL * 365ULL)), uint32_t((lastDeath / 24ULL) % 365ULL), uint32_t(lastDeath % 24ULL));
+  printf("First dead node (%s): %d years, %d days and %d hours\n", maxDev.c_str(),uint32_t(firstDeath / (24ULL * 365ULL)), uint32_t((firstDeath / 24ULL) % 365ULL), uint32_t(firstDeath % 24ULL));
+  printf("Last dead node (%s): %d years, %d days and %d hours\n", minDev.c_str(), uint32_t(lastDeath / (24ULL * 365ULL)), uint32_t((lastDeath / 24ULL) % 365ULL), uint32_t(lastDeath % 24ULL));
 }
