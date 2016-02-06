@@ -24,10 +24,10 @@
     <ClCompile Include="MeshWSN.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ClusterMeshDev.cpp">
+    <ClCompile Include="LLevent.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="LLevent.cpp">
+    <ClCompile Include="TreeMeshDev.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -38,10 +38,10 @@
     <ClInclude Include="MeshWSN.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="ClusterMeshDev.h">
+    <ClInclude Include="LLevent.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="LLevent.h">
+    <ClInclude Include="TreeMeshDev.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

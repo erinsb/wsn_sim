@@ -92,7 +92,7 @@ ClusterMeshDev::~ClusterMeshDev()
 void ClusterMeshDev::start(void)
 {
   doRecon();
-  mTimer->orderRelative(MESH_INTERVAL * 3, [this](timestamp_t, void*){ doMakeCluster(); }); // don't cleanup recon, we want to continue searching
+  mTimer->orderRelative(MESH_INTERVAL * 5, [this](timestamp_t, void*){ doMakeCluster(); }); // don't cleanup recon, we want to continue searching
 }
 
 void ClusterMeshDev::cleanupPrevState(void)
@@ -540,6 +540,8 @@ void ClusterMeshDev::radioCallbackRx(RadioPacket* pPacket, uint8_t rx_strength, 
   // update neighbor structure & score
   pSender->receivedBeacon(rxTime, pMeshPacket, pPacket->mChannel, rx_strength);
   mScore = mNeighbors.size();
+  mDefaultPacket.top().payload.str.payload.default.nodeWeight = mScore;
+ 
 
   if (isSubscribedTo(pSender))
   {
@@ -935,6 +937,9 @@ void ClusterMeshDev::radioBeaconTX(void)
   switch (mState)
   {
     case CM_STATE_RECON:
+		if (!mTimer->isValidTimer(mBeaconTimer))
+			mBeaconTimer = mTimer->orderRelative( (MESH_INTERVAL - 1 * MS) + 1 * MS, [this](timestamp_t, void*) { radioBeaconTX(); });
+		//deliberate fallthrough
     case CM_STATE_MAKE_CLUSTER:
     case CM_STATE_REQ_CLUSTER:
       if (!mTimer->isValidTimer(mBeaconTimer))

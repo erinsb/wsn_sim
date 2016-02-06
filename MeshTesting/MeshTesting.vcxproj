@@ -130,11 +130,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="ClusterMeshDev.cpp" />
     <ClCompile Include="LLevent.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MeshDevice.cpp" />
     <ClCompile Include="MeshWSN.cpp" />
+    <ClCompile Include="TreeMeshDev.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\wsn_sim\wsn_sim.vcxproj">
@@ -142,10 +142,10 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ClusterMeshDev.h" />
     <ClInclude Include="LLevent.h" />
     <ClInclude Include="MeshDevice.h" />
     <ClInclude Include="MeshWSN.h" />
+    <ClInclude Include="TreeMeshDev.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
