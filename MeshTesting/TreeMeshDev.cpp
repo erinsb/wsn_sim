@@ -144,7 +144,9 @@ void ClusterMeshDev::doRecon(void)
   mRadio->receive();
 
   mTimer->abort(mBeaconTimer);
-  mBeaconTimer = mTimer->orderRelative(mRand.Float() * (MESH_INTERVAL - 1 * MS) + 1 * MS, [this](timestamp_t, void*) { radioBeaconTX(); });
+
+  timestamp_t start = mTimer->getTimestamp() + mRand.Float() * (MESH_INTERVAL - 1 * MS) + 1 * MS;
+  mBeaconTimer = mTimer->orderPeriodic(start, MESH_INTERVAL, [=](timestamp_t, void*) { radioBeaconTX(); });;
   setState(CM_STATE_RECON);
 }
 
@@ -337,7 +339,7 @@ void ClusterMeshDev::makeClusterCheck(void)
     return;
   }
 
-  if (pBestNb == NULL || pBestNb->mNodeWeight < mScore)
+  if (pBestNb == NULL || pBestNb->mNodeWeight <= mScore)
   {
     if (pBestNb == NULL)
       _MESHLOG(mName, "No available neighbors");
@@ -937,9 +939,9 @@ void ClusterMeshDev::radioBeaconTX(void)
   switch (mState)
   {
     case CM_STATE_RECON:
-		if (!mTimer->isValidTimer(mBeaconTimer))
+	/*	if (!mTimer->isValidTimer(mBeaconTimer))
 			mBeaconTimer = mTimer->orderRelative( (MESH_INTERVAL - 1 * MS) + 1 * MS, [this](timestamp_t, void*) { radioBeaconTX(); });
-		//deliberate fallthrough
+		//deliberate fallthrough*/
     case CM_STATE_MAKE_CLUSTER:
     case CM_STATE_REQ_CLUSTER:
       if (!mTimer->isValidTimer(mBeaconTimer))
