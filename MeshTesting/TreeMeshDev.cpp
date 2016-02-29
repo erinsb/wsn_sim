@@ -10,6 +10,7 @@ bool isScanningState(cluster_mesh_state_t state)
     case CM_STATE_RECON:
     case CM_STATE_MAKE_CLUSTER:
     case CM_STATE_CH_SCAN:
+		case CM_STATE_BRANCH_SCAN:
       return true;
     default:
       return false;
@@ -27,6 +28,12 @@ std::string getStateString(cluster_mesh_state_t state)
     case CM_STATE_CH_SCAN:
       stateText = "CH scan";
       break;
+		case CM_STATE_BRANCH:
+			stateText = "Branch";
+			break;
+		case CM_STATE_BRANCH_SCAN:
+			stateText = "Branch scan";
+			break;
     case CM_STATE_LEAF:
       stateText = "Leaf";
       break;
@@ -174,7 +181,7 @@ void ClusterMeshDev::setCH(MeshNeighbor* pCH)
   mRadio->disable();
   mClusterHead = pCH;
   MeshCluster* pCluster = getCluster(&pCH->mAdvAddr);
-  mTimer->abort(mBeaconTimer);
+  //mTimer->abort(mBeaconTimer);
 
   if (pCluster == NULL)
   {
@@ -210,6 +217,9 @@ void ClusterMeshDev::becomeCH(void)
   {
     mRadio->disable();
   }
+	if (!mTimer->isValidTimer(mChTimer)) {
+		mTimer->abort(mChTimer); //abort switch back to leaf
+	}
 
   startLeafScanTimer();
 
@@ -223,6 +233,36 @@ void ClusterMeshDev::becomeCH(void)
   {
     setupTimeOrientation();
   });
+}
+
+void ClusterMeshDev::becomeBranch(void)
+{
+	timestamp_t timeNow = mTimer->getTimestamp();
+	setState(CM_STATE_BRANCH_SCAN);
+	timestamp_t start = timeNow + MESH_CLUSTER_SLOT_US + mRand(MESH_INTERVAL);// getNonCollidingOffset(timeNow + MESH_CLUSTER_SLOT_US, timeNow + MESH_INTERVAL);
+
+	//mTimer->abort(mBeaconTimer); //probably don't abort beacon timer
+	mBeaconTimer = mTimer->orderPeriodic(start, MESH_INTERVAL, [=](timestamp_t, void*) { radioBeaconTX(); });
+	mTimer->orderRelative(MESH_INTERVAL * 4, [=](timestamp_t, void*) { setState(CM_STATE_CH); }); // Stop scanning for participants after a while
+
+	mRadio->shortToRx(); // scan "forever"
+	if (mRadio->getState() != Radio::RADIO_STATE_RX)
+	{
+		mRadio->disable();
+	}
+
+	startLeafScanTimer();
+
+	mMyCluster = new MeshCluster(&mAdvAddr);
+	mClusters.push_back(mMyCluster);
+	mMyClusterOffset = 0;
+	mDevTag = DEVICE_TAG_MEDIUM;
+	// order cluster time orientation with regular offsets
+	mTimer->orderPeriodic(MESH_INTERVAL * (10 + mRand(10)), MESH_INTERVAL * 20,
+		[this](timestamp_t, void*)
+	{
+		setupTimeOrientation();
+	});
 }
 
 void ClusterMeshDev::subscribe(MeshNeighbor* pNb)
@@ -284,7 +324,7 @@ void ClusterMeshDev::subscriptionAbort(MeshNeighbor* pNb)
   mWSN->removeConnection(this, pNb->mDev);
   mTimer->abort(pNb->mRxTimer);
   _MESHWARN(mName, "Aborted sub to %s. STATE: %s", pNb->mDev->mName.c_str(), getStateString(mState).c_str());
-  if (pNb == mClusterHead && !isCH())
+  if (pNb == mClusterHead /*&& !isCH()*/) //no longer necessarily true in tree
   {
     mClusterHead = NULL;
     std::vector<MeshNeighbor*> tempNbs;
@@ -330,12 +370,13 @@ void ClusterMeshDev::subscriptionAbort(MeshNeighbor* pNb)
 
 void ClusterMeshDev::makeClusterCheck(void)
 {
-  MeshNeighbor* pBestNb = getBestNb([=](MeshNeighbor* pNb) -> bool{ return (pNb->mClusterHead.isNull()); }); // unbound devices
-  MeshNeighbor* pBestCH = getBestNb([](MeshNeighbor* pNb) -> bool{ return (pNb->isClusterHead()); });
+	MeshNeighbor* pBestNb = getBestNb([=](MeshNeighbor* pNb) -> bool { return (pNb->mClusterHead.isNull()); }); // unbound devices
+  MeshNeighbor* pBestCH = getBestNb([](MeshNeighbor* pNb) -> bool{ return (pNb->isClusterHead() || !pNb->mClusterHead.isNull()); });
 
   if (mClusterHead == NULL && pBestCH != NULL)
   {
-    setCH(pBestCH);
+		_MESHLOG(mName, "Set CH");
+		setCH(pBestCH);
     return;
   }
 
@@ -542,7 +583,7 @@ void ClusterMeshDev::radioCallbackRx(RadioPacket* pPacket, uint8_t rx_strength, 
   // update neighbor structure & score
   pSender->receivedBeacon(rxTime, pMeshPacket, pPacket->mChannel, rx_strength);
   mScore = mNeighbors.size();
-  mDefaultPacket.top().payload.str.payload.default.nodeWeight = mScore;
+  //mDefaultPacket.top().payload.str.payload.default.nodeWeight = mScore;
  
 
   if (isSubscribedTo(pSender))
@@ -628,6 +669,7 @@ void ClusterMeshDev::radioCallbackRx(RadioPacket* pPacket, uint8_t rx_strength, 
     {
       _MESHLOG(mName, "Found device %s, subscribing. STATE: %s", pSender->mDev->mName.c_str(), getStateString(mState).c_str());
       subscribe(pSender);
+	    //setCH(pSender);
     }
   }
 
@@ -671,10 +713,20 @@ void ClusterMeshDev::radioCallbackRx(RadioPacket* pPacket, uint8_t rx_strength, 
             pCluster->mDevices[0] = pSender;
             mTimer->abort(mBeaconTimer); // beacon will now rely on cluster head
             _MESHLOG(mName, "Stopped requesting /beaconing");
-            cleanupPrevState();
-            setState(CM_STATE_LEAF);
+						cleanupPrevState();
+						mRadio->shortToRx(); // scan "forever"
+						if (mRadio->getState() != Radio::RADIO_STATE_RX)
+						{
+							mRadio->disable();
+						}
+            setState(CM_STATE_BRANCH_SCAN); //scan for more distant leaf nodes
+						mChTimer = mTimer->orderRelative(MESH_INTERVAL * 10, [this](timestamp_t, void*) {
+							mRadio->shortDisable();
+							mRadio->disable(); 
+							setState(CM_STATE_LEAF); 
+						});
             mWSN->addConnection(this, pSender->mDev, true);
-            mDefaultPacket.pop(); // take away request packet
+            mPacketQueue.pop(); // take away request packet
 
             // setup a scan after some time, when the mesh might have stabilized. Repeat occasionally
             startLeafScanTimer();
@@ -704,7 +756,8 @@ void ClusterMeshDev::radioCallbackRx(RadioPacket* pPacket, uint8_t rx_strength, 
           if (!pMeshPacket->payload.str.payload.default.ch_fields.isScanning)
           {
             /* CH has stopped scanning, no point in random TX */
-            mTimer->abort(mBeaconTimer);
+           if((mTimer->getTimestamp() - mLastStateChange) > MESH_INTERVAL*3)
+							mTimer->abort(mBeaconTimer);
             
             /* if CH is listening at the end of its cluster train, we may be able to get its attention */
             if (pMeshPacket->payload.str.payload.default.ch_fields.rxAtEnd)
@@ -752,7 +805,17 @@ void ClusterMeshDev::radioCallbackRx(RadioPacket* pPacket, uint8_t rx_strength, 
         }
       }
       break;
-    case CM_STATE_CH:
+		case CM_STATE_BRANCH_SCAN:
+			if (pMeshPacket->payload.str.adv_type == MESH_ADV_TYPE_CLUSTER_REQ) {
+				if (pMeshPacket->payload.str.payload.cluster_req.clusterAddr == mAdvAddr){
+					mTimer->abort(mChTimer); //abort switch back to LEAF
+					becomeCH();
+					mClusterReqs.push(pSender);
+					transmitClusterjoin();
+				}
+			}
+			break;
+		case CM_STATE_CH:
     case CM_STATE_CH_SCAN:
       switch (pMeshPacket->payload.str.adv_type)
       {
@@ -813,7 +876,7 @@ void ClusterMeshDev::radioBeaconTX(void)
 {
   bool transmitBeacon = mPacketQueue.empty();
   if (!transmitBeacon)
-  {
+  { 
     mesh_packet_t* pPacket = mPacketQueue.front();
     mPacketQueue.pop();
     std::string nodestr;
@@ -938,16 +1001,15 @@ void ClusterMeshDev::radioBeaconTX(void)
 
   switch (mState)
   {
-    case CM_STATE_RECON:
-	/*	if (!mTimer->isValidTimer(mBeaconTimer))
-			mBeaconTimer = mTimer->orderRelative( (MESH_INTERVAL - 1 * MS) + 1 * MS, [this](timestamp_t, void*) { radioBeaconTX(); });
-		//deliberate fallthrough*/
+		case CM_STATE_REQ_CLUSTER:
+			transmitClusterReq();
+		case CM_STATE_RECON:
     case CM_STATE_MAKE_CLUSTER:
-    case CM_STATE_REQ_CLUSTER:
       if (!mTimer->isValidTimer(mBeaconTimer))
       mBeaconTimer = mTimer->orderRelative((MESH_INTERVAL - mLastStateChange % MESH_INTERVAL) + mRand.Float() * (MESH_INTERVAL - 1 * MS) + 1 * MS, [this](timestamp_t, void*) { radioBeaconTX(); });
       //deliberate fallthrough
     case CM_STATE_CH_SCAN:
+		case CM_STATE_BRANCH_SCAN:
     case CM_STATE_LEAF_SCAN:
       mRadio->shortToRx();
       break;
@@ -1295,9 +1357,10 @@ bool ClusterMeshDev::isSubscribedToCluster(MeshCluster* pCluster)
 void ClusterMeshDev::setState(cluster_mesh_state_t state) 
 { 
   std::string stateText = getStateString(state);
-  if ((mState == CM_STATE_CH || mState == CM_STATE_CH_SCAN) && 
+  /*if ((mState == CM_STATE_CH || mState == CM_STATE_CH_SCAN) && 
     state != CM_STATE_CH && state != CM_STATE_CH_SCAN)
-    _MESHLOG(mName, "CH CHANGING STATE TO %s", stateText.c_str());
+    _MESHLOG(mName, "CH CHANGING STATE TO %s", stateText.c_str());*/
+	_MESHLOG(mName, "CHANGING STATE TO %s", stateText.c_str());
   mLastStateChange = mTimer->getTimestamp(); 
   mState = state; 
 }
@@ -1311,6 +1374,7 @@ void ClusterMeshDev::transmitClusterjoin(void)
   pPacket->header.type = BLE_PACKET_TYPE_ADV_IND;
   pPacket->payload.str.adv_len = MESH_PACKET_OVERHEAD_JOIN_CLUSTER;
   pPacket->payload.str.adv_type = MESH_ADV_TYPE_JOIN_CLUSTER;
+	pPacket->payload.str.payload.default.nodeWeight = mScore;
   for (uint8_t i = 0; i < 4; ++i)
     pPacket->payload.str.payload.join_cluster.node[i].clear();
   pPacket->adv_addr.set(mAdvAddr);
@@ -1320,17 +1384,20 @@ void ClusterMeshDev::transmitClusterjoin(void)
 
 void ClusterMeshDev::transmitClusterReq(void)
 {
-  mesh_packet_t packet;
+  //mesh_packet_t packet;
+	mesh_packet_t* pPacket = new mesh_packet_t();
 
-  packet.access_addr = MESH_ACCESS_ADDR;
-  packet.header.length = MESH_PACKET_OVERHEAD + MESH_PACKET_OVERHEAD_CLUSTER_REQ;
-  packet.header.type = BLE_PACKET_TYPE_ADV_IND;
-  packet.payload.str.adv_len = MESH_PACKET_OVERHEAD_CLUSTER_REQ;
-  packet.payload.str.adv_type = MESH_ADV_TYPE_CLUSTER_REQ;
-  packet.payload.str.payload.cluster_req.clusterAddr.set(mClusterHead->mAdvAddr);
-  packet.adv_addr.set(mAdvAddr);
-
-  mDefaultPacket.push(packet);
+  pPacket->access_addr = MESH_ACCESS_ADDR;
+  pPacket->header.length = MESH_PACKET_OVERHEAD + MESH_PACKET_OVERHEAD_CLUSTER_REQ;
+  pPacket->header.type = BLE_PACKET_TYPE_ADV_IND;
+  pPacket->payload.str.adv_len = MESH_PACKET_OVERHEAD_CLUSTER_REQ;
+  pPacket->payload.str.adv_type = MESH_ADV_TYPE_CLUSTER_REQ;
+	pPacket->payload.str.payload.default.nodeWeight = mScore;
+  pPacket->payload.str.payload.cluster_req.clusterAddr.set(mClusterHead->mAdvAddr);
+  pPacket->adv_addr.set(mAdvAddr);
+  //mDefaultPacket.push(packet);
+	//mPacketQueue->push(packet);
+	mPacketQueue.push(pPacket);
 }
 void ClusterMeshDev::transmitNearestClusterUpdate(MeshCluster* pNearestCluster)
 {

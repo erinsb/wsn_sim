@@ -21,7 +21,9 @@ typedef enum
   CM_STATE_CH,
   CM_STATE_CH_SCAN,
   CM_STATE_LEAF,
-  CM_STATE_LEAF_SCAN
+  CM_STATE_LEAF_SCAN,
+	CM_STATE_BRANCH,
+	CM_STATE_BRANCH_SCAN
 } cluster_mesh_state_t;
 
 bool isScanningState(cluster_mesh_state_t state);
@@ -115,13 +117,14 @@ public:
   void doMakeCluster(void);
   void setCH(MeshNeighbor* pCH);
   void becomeCH(void);
+	void becomeBranch(void);
   void subscribe(MeshNeighbor* pNb);
   void subscriptionAbort(MeshNeighbor* pNb);
   void makeClusterCheck(void); // check whether we have a decision on cluster creation yet, and act on it
 
   bool isInCluster(void) { return (mState == CM_STATE_LEAF || CM_STATE_CH); }
   bool isSubscribedTo(MeshNeighbor* pNb);
-  bool isCH(void) { return ((mState == CM_STATE_CH) || (mState == CM_STATE_CH_SCAN)); }
+  bool isCH(void) { return ((mState == CM_STATE_CH) || (mState == CM_STATE_CH_SCAN) || (mState == CM_STATE_BRANCH) || (mState == CM_STATE_BRANCH_SCAN)); }
 
   MeshCluster* getCluster(ble_adv_addr_t* pCHaddr);
   timestamp_t getClusterTime(void);
