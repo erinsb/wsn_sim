@@ -98,9 +98,11 @@ timestamp_t Timer::getExpiration(timer_t timer)
 {
   Timeout* pTo = getTimeoutStruct(timer);
 
-  if (pTo == NULL)
-    _ERROR("Asked for expiration of non-existent timer");
-
+	if (pTo == NULL) {
+		//_ERROR("Asked for expiration of non-existent timer");
+		//_WARN("Asked for expiration of non-existent timer");
+		return NULL;
+	}
   return getTimerTime(pTo->mTimestamp);
 }
 

@@ -103,10 +103,11 @@ struct mesh_packet_t
           uint16_t offsetFromCH;      // number of 625us slots offset
           struct
           {
-            uint8_t clusterMax : 5;     // Index of first available slot in the cluster
+            uint8_t clusterMax : 4;     // Index of first available slot in the cluster
             uint8_t isScanning : 1;     // device will be scanning until next beacon, requests can occur at any time
             uint8_t rxAtEnd : 1;        // device will be listening at the end of the cluster train (slot #<clusterMax>)
             uint8_t headCount : 1;      // all devices in cluster must be active for this cluster event
+						uint8_t hasSubTree : 1;	//indicates if leaf or branch/root (mMySubTree != NULL)
           } ch_fields;
           uint8_t nodeWeight;         // based on power supply and stability. Lower is better
         } default;

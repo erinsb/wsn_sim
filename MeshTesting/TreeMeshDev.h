@@ -124,8 +124,8 @@ public:
 
   bool isInCluster(void) { return (mState == CM_STATE_LEAF || CM_STATE_CH); }
   bool isSubscribedTo(MeshNeighbor* pNb);
-  bool isCH(void) { return ((mState == CM_STATE_CH) || (mState == CM_STATE_CH_SCAN) || (mState == CM_STATE_BRANCH) || (mState == CM_STATE_BRANCH_SCAN)); }
-
+  //bool isCH(void) { return ((mState == CM_STATE_CH) || (mState == CM_STATE_CH_SCAN)); }
+	bool isCH(void) { return (mMySubCluster != NULL); }
   MeshCluster* getCluster(ble_adv_addr_t* pCHaddr);
   timestamp_t getClusterTime(void);
   void setScore(uint8_t score) { mScore = score; }
@@ -137,6 +137,7 @@ private:
   std::queue<MeshNeighbor*> mClusterReqs;
   MeshNeighbor* mClusterHead;
   MeshCluster* mMyCluster;
+	MeshCluster* mMySubCluster;
   MeshCluster* mNextCluster;
   cluster_mesh_state_t mState;
   timer_t mBeaconTimer;

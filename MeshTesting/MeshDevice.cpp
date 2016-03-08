@@ -125,7 +125,8 @@ void MeshNeighbor::receivedBeacon(timestamp_t rxTime, mesh_packet_t* beacon, uin
 
     switch (beacon->payload.str.adv_type)
     {
-    case MESH_ADV_TYPE_DEFAULT:
+    case MESH_ADV_TYPE_CLUSTER_REQ:
+		case MESH_ADV_TYPE_DEFAULT:
       mClusterHead.set(beacon->payload.str.payload.default.clusterAddr);
       mNbCount = beacon->payload.str.payload.default.ch_fields.clusterMax;
       mNodeWeight = beacon->payload.str.payload.default.nodeWeight;

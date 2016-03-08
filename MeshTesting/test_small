@@ -7,7 +7,7 @@ strict digraph {
 	2 [pos="276.094,152.686", xlabel="MESH_2" ]
 	3 [pos="330.573,196.442", xlabel="MESH_3" ]
 	4 [pos="0.167295,659.979", xlabel="MESH_4" ]
-	5 [pos="420.586,548.188", xlabel="MESH_5" ]
+	5 [pos="420.586,548.188", xlabel="MESH_5" style="filled", color="red"]
 	6 [pos="664.462,166.357", xlabel="MESH_6" ]
 	7 [pos="255.843,480.891", xlabel="MESH_7" ]
 	8 [pos="51.6548,95.3883", xlabel="MESH_8" ]
@@ -16,7 +16,13 @@ strict digraph {
 	11 [pos="532.603,143.48", xlabel="MESH_11" ]
 	12 [pos="255.817,211.878", xlabel="MESH_12" style="filled", color="red"]
 	13 [pos="135.462,10.0215", xlabel="MESH_13" ]
-	14 [pos="121.934,474.89", xlabel="MESH_14" ]
+	14 [pos="121.934,474.89", xlabel="MESH_14" style="filled", color="red"]
+
+	subgraph sym {
+		edge [style=solid, dir=none]
+		7 -> 4
+		0 -> 4
+	}
 
 	subgraph asym {
 		edge [style=dotted, arrowtype="open", arrowsize = 0.319098]
@@ -28,11 +34,14 @@ strict digraph {
 		12 -> 2 [color="red"]
 		12 -> 3 [color="red"]
 		12 -> 9 [color="red"]
-		12 -> 14 [color="red"]
 		12 -> 0 [color="red"]
-		12 -> 5 [color="red"]
 		12 -> 7 [color="red"]
-		5 -> 10
-		14 -> 4
+		5 -> 0
+		5 -> 7
+		14 -> 10
+		0 -> 10 [color="red"]
+		14 -> 4 [color="red"]
+		12 -> 5 [color="red"]
+		12 -> 14 [color="red"]
 	}
 }
