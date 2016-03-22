@@ -117,7 +117,6 @@ public:
   void doMakeCluster(void);
   void setCH(MeshNeighbor* pCH);
   void becomeCH(void);
-	void becomeBranch(void);
   void subscribe(MeshNeighbor* pNb);
   void subscriptionAbort(MeshNeighbor* pNb);
   void makeClusterCheck(void); // check whether we have a decision on cluster creation yet, and act on it
@@ -151,7 +150,9 @@ private:
   timestamp_t mLastStateChange;
   timestamp_t mScanInterval;
   std::queue<mesh_packet_t*> mPacketQueue;
+	std::queue<mesh_packet_t*> mSubPacketQueue;
   std::stack<mesh_packet_t> mDefaultPacket;
+	bool transmitSubTree;
   uint8_t mScore;
   uint32_t mMyClusterOffset;
   ble_adv_addr_t mAdvAddr;
